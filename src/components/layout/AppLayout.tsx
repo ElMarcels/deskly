@@ -18,8 +18,6 @@ const navLinks = [
   { href: "/habits", label: "Habitos", icon: CheckSquare },
 ];
 
-const SPOTIFY_PLAYLIST_URL = "https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator&theme=0";
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -87,10 +85,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {spotifyOpen ? <ChevronDown size={12} className="text-[#e0e0ff]/30" /> : <ChevronUp size={12} className="text-[#e0e0ff]/30" />}
           </button>
           {spotifyOpen && (
-            <div className="mt-2 rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)]">
-              <iframe src={SPOTIFY_PLAYLIST_URL} width="100%" height="120" frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"
-                className="rounded-xl" title="Spotify Player" />
+            <div className="mt-2 rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)] spotify-embed">
+              <iframe
+                src="https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator&theme=0"
+                width="100%" height="352" frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                className="rounded-xl" title="Spotify Player"
+                style={{ borderRadius: "0.75rem" }}
+              />
             </div>
           )}
         </div>

@@ -9,7 +9,7 @@ import NeonButton from "@/components/ui/NeonButton";
 interface Room {
   id: string; name: string; host: string; isPublic: boolean; isSilent: boolean;
   maxParticipants: number; timerDuration: number;
-  status: "lobby" | "active"; timeLeft: number;
+  status: "lobby" | "active" | "completed"; timeLeft: number;
 }
 interface RoomMessage { id: string; user: string; content: string; time: string; }
 
@@ -48,11 +48,11 @@ export default function RoomsPage() {
     } else if (timer === 0 && timerRunning) {
       setTimerRunning(false);
       if (selectedRoom) {
-        setRooms(rooms.map(r => r.id === selectedRoom.id ? { ...r, status: "completed" as const } : r));
+        setRooms(r => r.map(room => room.id === selectedRoom.id ? { ...room, status: "completed" as const } : room));
       }
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [timerRunning, timer]);
+  }, [timerRunning, timer, selectedRoom]);
 
   const createRoom = () => {
     if (!newRoomName.trim()) return;

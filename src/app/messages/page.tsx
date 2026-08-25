@@ -152,7 +152,7 @@ export default function MessagesPage() {
       const { data } = await query.order("created_at", { ascending: true });
       if (!data) return;
 
-      const senderIds = [...new Set(data.map(m => m.sender_id))];
+      const senderIds = Array.from(new Set(data.map(m => m.sender_id)));
       const { data: profiles } = await supabase.from("profiles").select("id, username, display_name").in("id", senderIds);
       const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
 

@@ -1,29 +1,6 @@
-@import "tailwindcss";
-
-@theme inline {
-  --color-background: #0a0a1a;
-  --color-foreground: #e0e0ff;
-  --color-surface: #12122a;
-  --color-surface-light: #1a1a3e;
-
-  --color-neon-purple: #a855f7;
-  --color-neon-magenta: #ec4899;
-  --color-neon-cyan: #06b6d4;
-  --color-neon-blue: #3b82f6;
-  --color-neon-pink: #f472b6;
-  --color-neon-violet: #8b5cf6;
-
-  --color-glass-bg: rgba(18, 18, 42, 0.6);
-  --color-glass-border: rgba(168, 85, 247, 0.2);
-  --color-glass-border-hover: rgba(168, 85, 247, 0.5);
-
-  --color-priority-low: #06b6d4;
-  --color-priority-medium: #f59e0b;
-  --color-priority-high: #ef4444;
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 * {
   scrollbar-width: thin;
@@ -44,23 +21,23 @@
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: #0a0a1a;
+  color: #e0e0ff;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   min-height: 100vh;
 }
 
 .glass-card {
-  background: var(--color-glass-bg);
+  background: rgba(18, 18, 42, 0.6);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--color-glass-border);
+  border: 1px solid rgba(168, 85, 247, 0.2);
   border-radius: 16px;
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  border-color: var(--color-glass-border-hover);
+  border-color: rgba(168, 85, 247, 0.5);
   box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
 }
 
@@ -136,12 +113,6 @@ body {
   }
 }
 
-@keyframes progress-ring {
-  from {
-    stroke-dashoffset: 283;
-  }
-}
-
 .animate-pulse-neon {
   animation: pulse-neon 2s ease-in-out infinite;
 }
@@ -152,13 +123,6 @@ body {
 
 .pomodoro-ring {
   transition: stroke-dashoffset 1s linear;
-}
-
-mark {
-  background: rgba(168, 85, 247, 0.3);
-  color: inherit;
-  border-radius: 4px;
-  padding: 0 4px;
 }
 
 @keyframes slide-up {

@@ -1,6 +1,6 @@
 {
   "name": "deskly",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,26 +9,23 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.4",
-    "@types/uuid": "^10.0.0",
-    "date-fns": "^4.4.0",
-    "lucide-react": "^1.34.0",
-    "next": "16.3.2",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "react-hot-toast": "^2.6.0",
-    "react-markdown": "^10.1.0",
-    "uuid": "^14.0.2",
-    "zustand": "^5.0.15"
+    "@supabase/supabase-js": "2.49.1",
+    "lucide-react": "0.469.0",
+    "next": "14.2.21",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-markdown": "9.0.3",
+    "zustand": "5.0.3"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.3.2",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/node": "20.17.0",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "autoprefixer": "10.4.20",
+    "eslint": "8.57.1",
+    "eslint-config-next": "14.2.21",
+    "postcss": "8.4.49",
+    "tailwindcss": "3.4.17",
+    "typescript": "5.6.3"
   }
 }

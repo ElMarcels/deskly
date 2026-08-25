@@ -5,7 +5,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import { MessageCircle, Send, Search, Plus, Users, Trash2, X, UserPlus } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
-import { createClient } from "@/lib/supabase/client";
+import { supabase } from "@/lib/supabase/client";
 
 interface Chat {
   id: string;
@@ -47,7 +47,6 @@ export default function MessagesPage() {
   const [isGroupCreation, setIsGroupCreation] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<Profile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const supabase = createClient();
   const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {

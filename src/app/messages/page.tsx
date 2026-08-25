@@ -42,7 +42,6 @@ export default function MessagesPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [userSearch, setUserSearch] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
-  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState("");
   const [isGroupCreation, setIsGroupCreation] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<Profile[]>([]);
@@ -62,76 +61,84 @@ export default function MessagesPage() {
     } catch { return t; }
   };
 
-  useEffect(() => {
-    if (!userId) return;
+  const fetchChats = async (uid: string) => {
+    const { data: memberGroups } = await supabase
+      .from("message_group_members")
+      .select("group_id")
+      .eq("user_id", uid);
 
-    const fetchChats = async () => {
-      const { data: groups } = await supabase
+    const groupIds = memberGroups?.map(m => m.group_id) || [];
+
+    let groups: { id: string; name: string; created_by: string }[] = [];
+    if (groupIds.length > 0) {
+      const { data } = await supabase
         .from("message_groups")
         .select("id, name, created_by")
-        .in("id", (await supabase.from("message_group_members").select("group_id").eq("user_id", userId)).data?.map(m => m.group_id) || []);
+        .in("id", groupIds);
+      groups = data || [];
+    }
 
-      const { data: dmMessages } = await supabase
+    const { data: dmMessages } = await supabase
+      .from("messages")
+      .select("id, sender_id, receiver_id, content, created_at")
+      .or(`sender_id.eq.${uid},receiver_id.eq.${uid}`)
+      .is("group_id", null)
+      .order("created_at", { ascending: false });
+
+    const chatMap = new Map<string, Chat>();
+
+    if (dmMessages) {
+      const seen = new Set<string>();
+      for (const msg of dmMessages) {
+        const otherId = msg.sender_id === uid ? msg.receiver_id : msg.sender_id;
+        if (!otherId || seen.has(otherId)) continue;
+        seen.add(otherId);
+
+        const { data: profile } = await supabase.from("profiles").select("username, display_name").eq("id", otherId).single();
+
+        chatMap.set(otherId, {
+          id: otherId,
+          name: profile?.display_name || profile?.username || "Usuario",
+          lastMessage: msg.content,
+          time: formatTime(msg.created_at),
+          unread: 0,
+          isGroup: false,
+          online: true,
+          otherUserId: otherId,
+        });
+      }
+    }
+
+    for (const group of groups) {
+      const { data: lastMsg } = await supabase
         .from("messages")
-        .select("id, sender_id, receiver_id, content, created_at")
-        .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-        .is("group_id", null)
-        .order("created_at", { ascending: false });
+        .select("content, created_at")
+        .eq("group_id", group.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
 
-      const chatMap = new Map<string, Chat>();
+      chatMap.set(group.id, {
+        id: group.id,
+        name: group.name,
+        lastMessage: lastMsg?.content || "",
+        time: lastMsg ? formatTime(lastMsg.created_at) : "",
+        unread: 0,
+        isGroup: true,
+        online: false,
+      });
+    }
 
-      if (dmMessages) {
-        const seen = new Set<string>();
-        for (const msg of dmMessages) {
-          const otherId = msg.sender_id === userId ? msg.receiver_id : msg.sender_id;
-          if (!otherId || seen.has(otherId)) continue;
-          seen.add(otherId);
+    setChats(Array.from(chatMap.values()));
+  };
 
-          const { data: profile } = await supabase.from("profiles").select("username, display_name").eq("id", otherId).single();
-
-          chatMap.set(otherId, {
-            id: otherId,
-            name: profile?.display_name || profile?.username || "Usuario",
-            lastMessage: msg.content,
-            time: formatTime(msg.created_at),
-            unread: 0,
-            isGroup: false,
-            online: true,
-            otherUserId: otherId,
-          });
-        }
-      }
-
-      if (groups) {
-        for (const group of groups) {
-          const { data: lastMsg } = await supabase
-            .from("messages")
-            .select("content, created_at")
-            .eq("group_id", group.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .single();
-
-          chatMap.set(group.id, {
-            id: group.id,
-            name: group.name,
-            lastMessage: lastMsg?.content || "",
-            time: lastMsg ? formatTime(lastMsg.created_at) : "",
-            unread: 0,
-            isGroup: true,
-            online: false,
-          });
-        }
-      }
-
-      setChats(Array.from(chatMap.values()));
-    };
-
-    fetchChats();
+  useEffect(() => {
+    if (!userId) return;
+    fetchChats(userId);
 
     const channel = supabase
       .channel("messages-changes")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => fetchChats())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => fetchChats(userId))
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -229,31 +236,42 @@ export default function MessagesPage() {
   };
 
   const createGroup = async () => {
-    if (!newGroupName.trim() || !userId || selectedMembers.length === 0) return;
+    if (!newGroupName.trim() || !userId) return;
 
-    const { data: group } = await supabase.from("message_groups")
+    const { data: group, error: groupError } = await supabase.from("message_groups")
       .insert({ name: newGroupName, created_by: userId })
       .select()
       .single();
 
-    if (group) {
-      const members = [{ group_id: group.id, user_id: userId }, ...selectedMembers.map(m => ({ group_id: group.id, user_id: m.id }))];
-      await supabase.from("message_group_members").insert(members);
-
-      setSelectedChat({
-        id: group.id,
-        name: group.name,
-        lastMessage: "",
-        time: "",
-        unread: 0,
-        isGroup: true,
-        online: false,
-      });
-      setNewGroupName("");
-      setSelectedMembers([]);
-      setShowNewChat(false);
-      setIsGroupCreation(false);
+    if (groupError || !group) {
+      console.error("Error creating group:", groupError);
+      return;
     }
+
+    const members = [{ group_id: group.id, user_id: userId }];
+    for (const m of selectedMembers) {
+      if (m.id !== userId) members.push({ group_id: group.id, user_id: m.id });
+    }
+
+    const { error: membersError } = await supabase.from("message_group_members").insert(members);
+    if (membersError) {
+      console.error("Error adding members:", membersError);
+    }
+
+    setSelectedChat({
+      id: group.id,
+      name: group.name,
+      lastMessage: "",
+      time: "",
+      unread: 0,
+      isGroup: true,
+      online: false,
+    });
+    setNewGroupName("");
+    setSelectedMembers([]);
+    setShowNewChat(false);
+    setIsGroupCreation(false);
+    if (userId) fetchChats(userId);
   };
 
   const inviteToGroup = async (profile: Profile) => {
@@ -289,7 +307,7 @@ export default function MessagesPage() {
               <div className="mb-3 p-3 rounded-xl bg-[#12122a] border border-[rgba(168,85,247,0.2)] animate-slide-up">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-[10px] text-[#e0e0ff]/60">Nuevo chat</p>
-                  <button onClick={() => { setShowNewChat(false); setIsGroupCreation(false); setSelectedMembers([]); setNewGroupName(""); }} className="text-[#e0e0ff]/30 hover:text-[#e0e0ff] cursor-pointer"><X size={14} /></button>
+                  <button onClick={() => { setShowNewChat(false); setIsGroupCreation(false); setSelectedMembers([]); setNewGroupName(""); setUserSearch(""); setSearchResults([]); }} className="text-[#e0e0ff]/30 hover:text-[#e0e0ff] cursor-pointer"><X size={14} /></button>
                 </div>
                 {!isGroupCreation ? (
                   <div className="space-y-2">
@@ -314,7 +332,7 @@ export default function MessagesPage() {
                   <div className="space-y-2">
                     <input type="text" placeholder="Nombre del grupo" value={newGroupName} onChange={e => setNewGroupName(e.target.value)}
                       className="w-full bg-[#1a1a3e] border border-[rgba(168,85,247,0.2)] rounded-lg px-2 py-1.5 text-xs text-[#e0e0ff] outline-none" />
-                    <input type="text" placeholder="Buscar miembros..." value={userSearch} onChange={e => searchUsers(e.target.value)}
+                    <input type="text" placeholder="Buscar miembros (opcional)..." value={userSearch} onChange={e => searchUsers(e.target.value)}
                       className="w-full bg-[#1a1a3e] border border-[rgba(168,85,247,0.2)] rounded-lg px-2 py-1.5 text-xs text-[#e0e0ff] outline-none" />
                     {selectedMembers.length > 0 && (
                       <div className="flex flex-wrap gap-1">
@@ -337,7 +355,7 @@ export default function MessagesPage() {
                         ))}
                       </div>
                     )}
-                    <NeonButton onClick={createGroup} variant="primary" size="sm" disabled={!newGroupName.trim() || selectedMembers.length === 0}>Crear Grupo</NeonButton>
+                    <NeonButton onClick={createGroup} variant="primary" size="sm" disabled={!newGroupName.trim()}>Crear Grupo</NeonButton>
                   </div>
                 )}
               </div>

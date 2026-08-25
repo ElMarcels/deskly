@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
-  CheckSquare, Brain, Calendar, Clock, FileQuestion, Menu, X, LogOut,
+  CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp,
 } from "lucide-react";
-import SpotifyWidget from "@/components/widgets/SpotifyWidget";
 import { supabase } from "@/lib/supabase/client";
 
 const navLinks = [
@@ -16,12 +15,10 @@ const navLinks = [
   { href: "/friends", label: "Amigos", icon: Users },
   { href: "/rooms", label: "Salas", icon: Radio },
   { href: "/messages", label: "Mensajes", icon: MessageCircle },
-  { href: "/habits", label: "Hábitos", icon: CheckSquare },
-  { href: "/flashcards", label: "Flashcards", icon: Brain },
-  { href: "/routines", label: "Rutinas", icon: Calendar },
-  { href: "/schedule", label: "Horario", icon: Clock },
-  { href: "/exam", label: "Examen", icon: FileQuestion },
+  { href: "/habits", label: "Habitos", icon: CheckSquare },
 ];
+
+const SPOTIFY_PLAYLIST_URL = "https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator&theme=0";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,6 +26,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
+  const [spotifyOpen, setSpotifyOpen] = useState(true);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -82,7 +80,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-3 py-3">
-          <SpotifyWidget />
+          <button onClick={() => setSpotifyOpen(!spotifyOpen)}
+            className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-left hover:bg-[#1a1a3e]/50 transition-colors cursor-pointer group">
+            <Music size={14} className="text-[#1db954]" />
+            <span className="text-[10px] font-bold text-[#e0e0ff]/60 flex-1">Focus Music</span>
+            {spotifyOpen ? <ChevronDown size={12} className="text-[#e0e0ff]/30" /> : <ChevronUp size={12} className="text-[#e0e0ff]/30" />}
+          </button>
+          {spotifyOpen && (
+            <div className="mt-2 rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)]">
+              <iframe src={SPOTIFY_PLAYLIST_URL} width="100%" height="120" frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"
+                className="rounded-xl" title="Spotify Player" />
+            </div>
+          )}
         </div>
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-4 py-4">
@@ -94,7 +104,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <p className="text-sm font-medium text-[#e0e0ff] truncate">{userName}</p>
               <p className="text-[10px] text-[#e0e0ff]/40 truncate">{userEmail}</p>
             </div>
-            <button onClick={handleLogout} className="rounded-lg p-2 text-[#e0e0ff]/30 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer" title="Cerrar sesión">
+            <button onClick={handleLogout} className="rounded-lg p-2 text-[#e0e0ff]/30 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer" title="Cerrar sesion">
               <LogOut size={16} />
             </button>
           </div>

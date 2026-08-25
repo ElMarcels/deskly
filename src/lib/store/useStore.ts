@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { PomodoroMode, PomodoroSettings, GradeEntry } from "@/types";
+import type { PomodoroMode, PomodoroSettings, GradeEntry, Task } from "@/types";
 
 interface DesklyState {
   zenMode: boolean;
@@ -13,8 +13,12 @@ interface DesklyState {
   incrementSessions: () => void;
   resetSessions: () => void;
 
-  activeWidget: string | null;
-  setActiveWidget: (widget: string | null) => void;
+  pomodoroTimeLeft: number;
+  setPomodoroTimeLeft: (t: number) => void;
+  pomodoroTotalTime: number;
+  setPomodoroTotalTime: (t: number) => void;
+  pomodoroRunning: boolean;
+  setPomodoroRunning: (r: boolean) => void;
 
   grades: GradeEntry[];
   addGrade: (grade: GradeEntry) => void;
@@ -30,39 +34,88 @@ interface DesklyState {
   setCurrentSubjectFilter: (id: string | null) => void;
 }
 
-export const useStore = create<DesklyState>((set) => ({
-  zenMode: false,
-  toggleZenMode: () => set((state) => ({ zenMode: !state.zenMode })),
+const loadFromStorage = <T,>(key: string, fallback: T): T => {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
-  pomodoroMode: "study",
-  setPomodoroMode: (mode) => set({ pomodoroMode: mode }),
-  pomodoroSettings: {
+const saveToStorage = (key: string, value: unknown) => {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+};
+
+export const useStore = create<DesklyState>((set, get) => ({
+  zenMode: loadFromStorage("deskly-zen-mode", false),
+  toggleZenMode: () => {
+    const next = !get().zenMode;
+    saveToStorage("deskly-zen-mode", next);
+    set({ zenMode: next });
+  },
+
+  pomodoroMode: loadFromStorage("deskly-pomodoro-mode", "study" as PomodoroMode),
+  setPomodoroMode: (mode) => {
+    saveToStorage("deskly-pomodoro-mode", mode);
+    set({ pomodoroMode: mode });
+  },
+  pomodoroSettings: loadFromStorage("deskly-pomodoro-settings", {
     studyDuration: 25,
     shortBreakDuration: 5,
     longBreakDuration: 15,
     sessionsBeforeLongBreak: 4,
+  } as PomodoroSettings),
+  setPomodoroSettings: (settings) => {
+    const current = get().pomodoroSettings;
+    const next = { ...current, ...settings };
+    saveToStorage("deskly-pomodoro-settings", next);
+    set({ pomodoroSettings: next });
   },
-  setPomodoroSettings: (settings) =>
-    set((state) => ({
-      pomodoroSettings: { ...state.pomodoroSettings, ...settings },
-    })),
-  sessionsToday: 0,
-  incrementSessions: () =>
-    set((state) => ({ sessionsToday: state.sessionsToday + 1 })),
+  sessionsToday: loadFromStorage("deskly-sessions-" + new Date().toDateString(), 0),
+  incrementSessions: () => {
+    const next = get().sessionsToday + 1;
+    saveToStorage("deskly-sessions-" + new Date().toDateString(), next);
+    set({ sessionsToday: next });
+  },
   resetSessions: () => set({ sessionsToday: 0 }),
 
-  activeWidget: null,
-  setActiveWidget: (widget) => set({ activeWidget: widget }),
+  pomodoroTimeLeft: loadFromStorage("deskly-pomodoro-timeleft", 25 * 60),
+  setPomodoroTimeLeft: (t) => {
+    saveToStorage("deskly-pomodoro-timeleft", t);
+    set({ pomodoroTimeLeft: t });
+  },
+  pomodoroTotalTime: loadFromStorage("deskly-pomodoro-total", 25 * 60),
+  setPomodoroTotalTime: (t) => {
+    saveToStorage("deskly-pomodoro-total", t);
+    set({ pomodoroTotalTime: t });
+  },
+  pomodoroRunning: loadFromStorage("deskly-pomodoro-running", false),
+  setPomodoroRunning: (r) => {
+    saveToStorage("deskly-pomodoro-running", r);
+    set({ pomodoroRunning: r });
+  },
 
-  grades: [],
-  addGrade: (grade) =>
-    set((state) => ({ grades: [...state.grades, grade] })),
-  removeGrade: (id) =>
-    set((state) => ({ grades: state.grades.filter((g) => g.id !== id) })),
-  updateGrade: (id, updates) =>
-    set((state) => ({
-      grades: state.grades.map((g) => (g.id === id ? { ...g, ...updates } : g)),
-    })),
+  grades: loadFromStorage("deskly-grades", []),
+  addGrade: (grade) => {
+    const next = [...get().grades, grade];
+    saveToStorage("deskly-grades", next);
+    set({ grades: next });
+  },
+  removeGrade: (id) => {
+    const next = get().grades.filter((g) => g.id !== id);
+    saveToStorage("deskly-grades", next);
+    set({ grades: next });
+  },
+  updateGrade: (id, updates) => {
+    const next = get().grades.map((g) => (g.id === id ? { ...g, ...updates } : g));
+    saveToStorage("deskly-grades", next);
+    set({ grades: next });
+  },
 
   ambientSound: null,
   ambientVolume: 0.3,

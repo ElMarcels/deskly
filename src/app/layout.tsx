@@ -14,20 +14,12 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Deskly — Dashboard de Estudio",
-  description:
-    "Dashboard de estudio personalizable para estudiantes. Pomodoro, tareas, notas y estadísticas con estilo cyberpunk.",
+  description: "Dashboard de estudio personalizable para estudiantes. Pomodoro, tareas, notas y estadísticas con estilo cyberpunk.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="es"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
-    >
+    <html lang="es" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-[#0a0a1a] text-[#e0e0ff] font-[family-name:var(--font-inter)]">
         {children}
       </body>

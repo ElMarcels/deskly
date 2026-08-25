@@ -9,17 +9,9 @@ interface GlassCardProps {
   onClick?: () => void;
 }
 
-export default function GlassCard({
-  children,
-  className = "",
-  glow = false,
-  onClick,
-}: GlassCardProps) {
+export default function GlassCard({ children, className = "", glow = false, onClick }: GlassCardProps) {
   return (
-    <div
-      className={`glass-card ${glow ? "neon-glow" : ""} ${className}`}
-      onClick={onClick}
-    >
+    <div className={`glass-card ${glow ? "neon-glow" : ""} ${className}`} onClick={onClick}>
       {children}
     </div>
   );

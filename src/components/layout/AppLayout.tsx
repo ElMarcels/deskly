@@ -5,9 +5,11 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
-  CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp,
+  CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+
+const ADMIN_EMAIL = "mnartves@gmail.com";
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -75,6 +77,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {userEmail.toLowerCase() === ADMIN_EMAIL && (
+            <Link key="/admin" href="/admin" onClick={() => setSidebarOpen(false)}
+              className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${pathname === "/admin" ? "bg-[rgba(239,68,68,0.15)] text-red-400 border border-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)]" : "text-[#e0e0ff]/50 hover:bg-[#1a1a3e]/50 hover:text-[#e0e0ff]/80 border border-transparent"}`}>
+              <ShieldCheck size={18} className={`flex-shrink-0 transition-colors ${pathname === "/admin" ? "text-red-400 drop-shadow-[0_0_6px_rgba(239,68,68,0.5)]" : "text-[#e0e0ff]/30 group-hover:text-[#e0e0ff]/60"}`} />
+              <span>Admin</span>
+              {pathname === "/admin" && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-red-400 shadow-[0_0_8px_rgba(239,68,68,0.7)]" />}
+            </Link>
+          )}
         </nav>
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-3 py-3">

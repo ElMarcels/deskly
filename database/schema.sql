@@ -355,6 +355,7 @@ ALTER TABLE schedule_slots ENABLE ROW LEVEL SECURITY;
 -- Users
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Admin can view all users" ON users FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
 
 -- Profiles (public read, own write)
 CREATE POLICY "Profiles are publicly readable" ON profiles FOR SELECT USING (true);

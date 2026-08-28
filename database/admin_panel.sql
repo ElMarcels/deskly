@@ -31,6 +31,7 @@ END $$;
 -- 1) Columna 'banned' en profiles (para bloqueo/suspensión)
 -- ==========================================================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banned BOOLEAN DEFAULT FALSE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS suspension_reason TEXT;
 
 -- ==========================================================
 -- 2) Tabla de ANUNCIOS

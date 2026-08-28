@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   streak_days INTEGER DEFAULT 0,
   longest_streak INTEGER DEFAULT 0,
   banned BOOLEAN DEFAULT FALSE,
+  suspension_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase/client";
 
 export default function SuspendedPage() {
   const [checking, setChecking] = useState(true);
+  const [reason, setReason] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -16,6 +17,12 @@ export default function SuspendedPage() {
         window.location.href = "/login";
         return;
       }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("suspension_reason")
+        .eq("id", data.user.id)
+        .single();
+      setReason(profile?.suspension_reason || null);
       setChecking(false);
     })();
   }, []);
@@ -50,9 +57,24 @@ export default function SuspendedPage() {
 
         <h1 className="text-3xl font-bold text-[#e0e0ff] mb-3">Cuenta suspendida</h1>
         <div className="h-px w-16 mx-auto my-4 bg-gradient-to-r from-transparent via-[#a855f7] to-transparent" />
-        <p className="text-sm leading-relaxed text-[#e0e0ff]/60 mb-8">
+        <p className="text-sm leading-relaxed text-[#e0e0ff]/60 mb-3">
           Tu cuenta ha sido suspendida y ya no tienes acceso a Deskly.
+          Esta medida se toma cuando se incumplen las normas de la plataforma
+          o se detecta actividad inapropiada.
         </p>
+        {reason ? (
+          <div className="my-5 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-left">
+            <p className="text-xs font-bold text-red-400 mb-1">Motivo de la suspensión</p>
+            <p className="text-sm text-[#e0e0ff]/80">{reason}</p>
+          </div>
+        ) : (
+          <div className="my-5 p-4 rounded-xl bg-[#12122a]/60 border border-[rgba(168,85,247,0.15)] text-left">
+            <p className="text-xs text-[#e0e0ff]/50">
+              El acceso a tu cuenta seguirá bloqueado hasta que se resuelva esta situación.
+              Todos los datos asociados a tu cuenta están deshabilitados durante este periodo.
+            </p>
+          </div>
+        )}
 
         <NeonButton variant="ghost" onClick={handleLogout} className="w-full">
           <LogOut size={16} /> Salir

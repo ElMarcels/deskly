@@ -33,6 +33,7 @@ interface AppUser {
   daily_study_goal: number;
   created_at: string;
   banned?: boolean;
+  suspension_reason?: string;
   last_active?: string;
   pomodoros_total?: number;
   hours_total?: number;
@@ -137,7 +138,7 @@ function UsersTab() {
       if (ids.length) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, username, banned, last_active, bio, pomodoros_total, hours_total, streak_days, longest_streak")
+          .select("id, username, banned, suspension_reason, last_active, bio, pomodoros_total, hours_total, streak_days, longest_streak")
           .in("id", ids);
         (profiles || []).forEach(p => { profileMap[p.id] = p; });
       }
@@ -150,16 +151,21 @@ function UsersTab() {
   useEffect(() => { load(); }, [load]);
 
   const toggleBan = async (u: AppUser) => {
-    setBusyId(u.id);
     const next = !u.banned;
+    let reason: string | null = u.suspension_reason || null;
+    if (next) {
+      reason = prompt("Motivo de la suspensión (se mostrará al usuario):", u.suspension_reason || "");
+      if (reason === null) return;
+    }
+    setBusyId(u.id);
     const { error } = await supabase
       .from("profiles")
-      .update({ banned: next })
+      .update({ banned: next, suspension_reason: next ? reason : null })
       .eq("id", u.id);
     if (error) setMsg("Error: " + error.message);
     else {
-      setUsers(users.map(x => x.id === u.id ? { ...x, banned: next } : x));
-      if (detail?.id === u.id) setDetail({ ...detail, banned: next });
+      setUsers(users.map(x => x.id === u.id ? { ...x, banned: next, suspension_reason: next ? reason : null } : x));
+      if (detail?.id === u.id) setDetail({ ...detail, banned: next, suspension_reason: next ? reason : null });
     }
     setBusyId(null);
   };
@@ -211,6 +217,9 @@ function UsersTab() {
                 )}
                 <span className="text-[10px] text-[#e0e0ff]/40">Registrado: {new Date(detail.created_at).toLocaleDateString("es-ES")}</span>
               </div>
+              {detail.banned && detail.suspension_reason && (
+                <p className="text-xs text-red-400/80 mt-2"><span className="font-bold">Motivo: </span>{detail.suspension_reason}</p>
+              )}
             </div>
             <div className="flex flex-col gap-2">
               <NeonButton onClick={() => toggleBan(detail)} variant={detail.banned ? "secondary" : "danger"} size="sm" disabled={busyId === detail.id}>

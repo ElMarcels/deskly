@@ -430,7 +430,7 @@ function MessagesTab() {
     if (error) {
       setMsg("Error: " + error.message + " (¿aplicaste las políticas de admin?)");
     } else {
-      const ids = [...new Set((data || []).map(m => [m.sender_id, m.receiver_id]).flat().filter(Boolean))];
+      const ids = Array.from(new Set((data || []).map(m => [m.sender_id, m.receiver_id]).flat().filter(Boolean)));
       let names: Record<string, string> = {};
       if (ids.length) {
         const { data: profiles } = await supabase.from("profiles").select("id, display_name, username").in("id", ids);
@@ -513,7 +513,7 @@ function RoomsTab() {
       if (error) {
         setMsg("Error: " + error.message + " (¿aplicaste las políticas de admin?)");
       } else {
-        const ids = [...new Set((data || []).map(r => r.host_id).filter(Boolean))];
+        const ids = Array.from(new Set((data || []).map(r => r.host_id).filter(Boolean)));
         let names: Record<string, string> = {};
         if (ids.length) {
           const { data: profiles } = await supabase.from("profiles").select("id, display_name, username").in("id", ids);
@@ -657,7 +657,7 @@ function TicketsTab() {
       if (error) {
         setMsg("Error: " + error.message + " (¿aplicaste el SQL de admin panel?)");
       } else {
-        const ids = [...new Set((data || []).map(t => t.user_id))];
+        const ids = Array.from(new Set((data || []).map(t => t.user_id)));
         let names: Record<string, string> = {};
         if (ids.length) {
           const { data: profiles } = await supabase.from("profiles").select("id, display_name, username").in("id", ids);

@@ -79,17 +79,20 @@ export default function ProfilePage() {
 
   const saveProfile = async () => {
     if (!userId) return;
+    if (!displayName.trim() || !username.trim()) return;
     setSaving(true);
-    await supabase.from("profiles").upsert({
+    const { error } = await supabase.from("profiles").upsert({
       id: userId,
-      display_name: displayName,
-      username,
-      bio,
-      status,
+      display_name: displayName.trim(),
+      username: username.trim(),
+      bio: bio.trim(),
+      status: status.trim(),
       status_emoji: statusEmoji,
     });
+    if (!error) {
+      setEditing(false);
+    }
     setSaving(false);
-    setEditing(false);
   };
 
   const weekData = [0, 0, 0, 0, 0, 0, 0];
@@ -144,9 +147,14 @@ export default function ProfilePage() {
               </div>
               <div className="flex gap-2">
                 {editing ? (
-                  <NeonButton onClick={saveProfile} variant="primary" size="sm" disabled={saving}>
-                    <Save size={14} /> {saving ? "Guardando..." : "Guardar"}
-                  </NeonButton>
+                  <>
+                    <NeonButton onClick={saveProfile} variant="primary" size="sm" disabled={saving || !displayName.trim() || !username.trim()}>
+                      <Save size={14} /> {saving ? "Guardando..." : "Guardar"}
+                    </NeonButton>
+                    <NeonButton onClick={() => setEditing(false)} variant="ghost" size="sm" disabled={saving}>
+                      Cancelar
+                    </NeonButton>
+                  </>
                 ) : (
                   <NeonButton onClick={() => setEditing(true)} variant="secondary" size="sm"><Edit3 size={14} /> Editar</NeonButton>
                 )}

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
-  CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck,
+  CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 
@@ -27,6 +27,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [spotifyOpen, setSpotifyOpen] = useState(true);
+  const [maintenance, setMaintenance] = useState(false);
+  const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -40,7 +43,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     };
     loadUser();
+
+    const loadGlobal = async () => {
+      try {
+        const { data: setting } = await supabase.from("app_settings").select("value").eq("key", "maintenance_mode").single();
+        if (setting) setMaintenance(setting.value === "true");
+      } catch {}
+      try {
+        const { data: anns } = await supabase.from("announcements").select("id, title, content").eq("active", true).order("created_at", { ascending: false });
+        if (anns) setAnnouncements(anns || []);
+      } catch {}
+      try {
+        const d = localStorage.getItem("deskly-announcements-dismiss");
+        if (d) setDismissed(JSON.parse(d));
+      } catch {}
+    };
+    loadGlobal();
   }, []);
+
+  const dismissAnnouncement = (id: string) => {
+    const next = [...dismissed, id];
+    setDismissed(next);
+    try { localStorage.setItem("deskly-announcements-dismiss", JSON.stringify(next)); } catch {}
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -124,7 +149,31 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="lg:ml-64 min-h-screen p-6 lg:p-8">{children}</main>
+      <main className="lg:ml-64 min-h-screen p-6 lg:p-8">
+        {announcements.filter(a => !dismissed.includes(a.id)).map(a => (
+          <div key={a.id} className="mb-4 flex items-start gap-3 p-3 rounded-xl bg-[rgba(168,85,247,0.12)] border border-[rgba(168,85,247,0.25)] animate-slide-up">
+            <Megaphone size={16} className="text-[#a855f7] mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-[#e0e0ff]">{a.title}</p>
+              <p className="text-xs text-[#e0e0ff]/70 mt-0.5">{a.content}</p>
+            </div>
+            <button onClick={() => dismissAnnouncement(a.id)} className="p-1 rounded hover:bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#e0e0ff] cursor-pointer shrink-0"><X size={14} /></button>
+          </div>
+        ))}
+        {children}
+      </main>
+
+      {maintenance && userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase() && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0a0a1a]/95 backdrop-blur-md p-6">
+          <div className="text-center max-w-md">
+            <Wrench size={44} className="mx-auto mb-4 text-[#a855f7]" />
+            <h1 className="text-2xl font-bold text-[#e0e0ff] mb-2">Mantenimiento</h1>
+            <p className="text-sm text-[#e0e0ff]/60">
+              Estamos realizando tareas de mantenimiento. Vuelve en unos minutos.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -33,6 +33,19 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
           password,
         });
         if (error) throw error;
+        const { data: userData } = await supabase.auth.getUser();
+        const uid = userData.user?.id;
+        if (uid) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("banned")
+            .eq("id", uid)
+            .single();
+          if (profile?.banned) {
+            await supabase.auth.signOut();
+            throw new Error("Tu cuenta ha sido suspendida. Contacta con soporte.");
+          }
+        }
       }
       window.location.href = "/dashboard";
     } catch (err: unknown) {

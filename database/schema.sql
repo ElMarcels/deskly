@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   hours_total FLOAT DEFAULT 0,
   streak_days INTEGER DEFAULT 0,
   longest_streak INTEGER DEFAULT 0,
+  banned BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -297,6 +298,36 @@ CREATE TABLE IF NOT EXISTS schedule_slots (
 );
 
 -- ==========================================================
+-- ADMIN: ANUNCIOS, TICKETS Y CONFIGURACIÓN
+-- ==========================================================
+
+CREATE TABLE IF NOT EXISTS announcements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL DEFAULT '',
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS app_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT DEFAULT ''
+);
+
+INSERT INTO app_settings (key, value) VALUES ('maintenance_mode', 'false')
+ON CONFLICT (key) DO NOTHING;
+
+-- ==========================================================
 -- INDEXES
 -- ==========================================================
 
@@ -351,16 +382,21 @@ ALTER TABLE flashcard_decks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedule_slots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
 -- Users
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Admin can view all users" ON users FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can delete users" ON users FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 -- Profiles (public read, own write)
 CREATE POLICY "Profiles are publicly readable" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can create own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Admin can delete profile" ON profiles FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 -- Subjects
 CREATE POLICY "Users can view own subjects" ON subjects FOR SELECT USING (auth.uid() = user_id);
@@ -405,6 +441,8 @@ CREATE POLICY "Users can send messages" ON messages FOR INSERT
   WITH CHECK (auth.uid() = sender_id);
 CREATE POLICY "Users can update own messages" ON messages FOR UPDATE
   USING (auth.uid() = receiver_id);
+CREATE POLICY "Admin can select all messages" ON messages FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can delete messages" ON messages FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 -- Message Groups
 CREATE POLICY "Users can view groups they belong to" ON message_groups FOR SELECT
@@ -427,6 +465,8 @@ CREATE POLICY "Users can create rooms" ON study_rooms FOR INSERT
   WITH CHECK (auth.uid() = host_id);
 CREATE POLICY "Host can update room" ON study_rooms FOR UPDATE
   USING (auth.uid() = host_id);
+CREATE POLICY "Admin can select all rooms" ON study_rooms FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can delete rooms" ON study_rooms FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 -- Study Room Participants
 CREATE POLICY "Room participants are visible" ON study_room_participants FOR SELECT
@@ -443,6 +483,8 @@ CREATE POLICY "Room members can send messages" ON study_room_messages FOR INSERT
   WITH CHECK (auth.uid() = user_id AND EXISTS (
     SELECT 1 FROM study_room_participants WHERE room_id = study_room_messages.room_id AND user_id = auth.uid()
   ));
+CREATE POLICY "Admin can select all room messages" ON study_room_messages FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can delete room messages" ON study_room_messages FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 -- Routines
 CREATE POLICY "Users can view own routines" ON routines FOR SELECT USING (auth.uid() = user_id);
@@ -455,10 +497,12 @@ CREATE POLICY "Users can manage own routine items" ON routine_items FOR ALL USIN
 -- Habits
 CREATE POLICY "Users can view own habits" ON habits FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own habits" ON habits FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Admin can read all habits" ON habits FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
 
 -- Habit Logs
 CREATE POLICY "Users can view own habit logs" ON habit_logs FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own habit logs" ON habit_logs FOR ALL USING (auth.uid() = user_id);
+CREATE POLICY "Admin can read all habit logs" ON habit_logs FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
 
 -- Flashcard Decks
 CREATE POLICY "Users can view own decks" ON flashcard_decks FOR SELECT USING (auth.uid() = user_id);
@@ -476,7 +520,21 @@ CREATE POLICY "Users can manage own schedules" ON schedules FOR ALL USING (auth.
 CREATE POLICY "Users can view own schedule slots" ON schedule_slots FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own schedule slots" ON schedule_slots FOR ALL USING (auth.uid() = user_id);
 
--- Enable Realtime for study rooms
+-- Announcements
+CREATE POLICY "Everyone can read announcements" ON announcements FOR SELECT USING (true);
+CREATE POLICY "Admin can manage announcements" ON announcements FOR ALL USING (auth.email() = 'mnartves@gmail.com');
+
+-- Tickets
+CREATE POLICY "Users can create own tickets" ON tickets FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can view own tickets" ON tickets FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Admin can view all tickets" ON tickets FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can manage tickets" ON tickets FOR UPDATE USING (auth.email() = 'mnartves@gmail.com');
+
+-- App Settings
+CREATE POLICY "Everyone can read app settings" ON app_settings FOR SELECT USING (true);
+CREATE POLICY "Admin can manage app settings" ON app_settings FOR ALL USING (auth.email() = 'mnartves@gmail.com');
+
+-- Enable realtime for study rooms
 ALTER PUBLICATION supabase_realtime ADD TABLE study_rooms;
 ALTER PUBLICATION supabase_realtime ADD TABLE study_room_messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE study_room_participants;

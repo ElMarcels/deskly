@@ -33,7 +33,7 @@ interface AppUser {
   daily_study_goal: number;
   created_at: string;
   banned?: boolean;
-  suspension_reason?: string;
+  suspension_reason?: string | null;
   last_active?: string;
   pomodoros_total?: number;
   hours_total?: number;

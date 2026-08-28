@@ -29,26 +29,41 @@ export default function ProfilePage() {
   const [userEmail, setUserEmail] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [pomodorosTotal, setPomodorosTotal] = useState(0);
   const [hoursTotal, setHoursTotal] = useState(0);
   const [streakDays, setStreakDays] = useState(0);
   const [longestStreak, setLongestStreak] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) return;
+      const { data, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.error("Auth error:", authError);
+        return;
+      }
+      if (!data.user) {
+        console.error("No user session");
+        return;
+      }
 
       const uid = data.user.id;
       setUserId(uid);
       setUserEmail(data.user.email || "");
 
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("display_name, username, bio, status, status_emoji, pomodoros_total, hours_total, streak_days, longest_streak")
         .eq("id", uid)
         .single();
+
+      if (profileError && profileError.code !== "PGRST116") {
+        console.error("Profile load error:", profileError);
+        setProfileLoaded(true);
+        return;
+      }
 
       if (profile) {
         setDisplayName(profile.display_name || data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "");
@@ -64,7 +79,7 @@ export default function ProfilePage() {
         const name = data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "";
         setDisplayName(name);
         setUsername(data.user.email?.split("@")[0] || "");
-        await supabase.from("profiles").upsert({
+        const { error: upsertError } = await supabase.from("profiles").upsert({
           id: uid,
           display_name: name,
           username: data.user.email?.split("@")[0] || "",
@@ -72,15 +87,26 @@ export default function ProfilePage() {
           status: "Estudiando",
           status_emoji: "📚",
         });
+        if (upsertError) {
+          console.error("Profile auto-create error:", upsertError);
+        }
       }
+      setProfileLoaded(true);
     };
     load();
   }, []);
 
   const saveProfile = async () => {
-    if (!userId) return;
-    if (!displayName.trim() || !username.trim()) return;
+    if (!userId) {
+      setSaveError("No hay sesión de usuario activa. Cierra sesión y vuelve a entrar.");
+      return;
+    }
+    if (!displayName.trim() || !username.trim()) {
+      setSaveError("El nombre y el username no pueden estar vacíos.");
+      return;
+    }
     setSaving(true);
+    setSaveError(null);
     const { error } = await supabase.from("profiles").upsert({
       id: userId,
       display_name: displayName.trim(),
@@ -89,7 +115,10 @@ export default function ProfilePage() {
       status: status.trim(),
       status_emoji: statusEmoji,
     });
-    if (!error) {
+    if (error) {
+      console.error("Save profile error:", error);
+      setSaveError(error.message);
+    } else {
       setEditing(false);
     }
     setSaving(false);
@@ -148,7 +177,7 @@ export default function ProfilePage() {
               <div className="flex gap-2">
                 {editing ? (
                   <>
-                    <NeonButton onClick={saveProfile} variant="primary" size="sm" disabled={saving || !displayName.trim() || !username.trim()}>
+                    <NeonButton onClick={saveProfile} variant="primary" size="sm">
                       <Save size={14} /> {saving ? "Guardando..." : "Guardar"}
                     </NeonButton>
                     <NeonButton onClick={() => setEditing(false)} variant="ghost" size="sm" disabled={saving}>
@@ -160,6 +189,9 @@ export default function ProfilePage() {
                 )}
               </div>
             </div>
+            {saveError && editing && (
+              <p className="mt-3 text-xs text-red-400">{saveError}</p>
+            )}
             {!editing && <p className="mt-3 text-sm text-[#e0e0ff]/60">{bio || "Sin biografia"}</p>}
 
             <div className="grid grid-cols-4 gap-3 mt-5">

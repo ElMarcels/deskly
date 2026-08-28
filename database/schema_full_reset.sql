@@ -1,12 +1,38 @@
 -- ==========================================================
--- Deskly — Esquema de Base de Datos v2 (Supabase / PostgreSQL)
+-- Deskly — ESQUEMA COMPLETO (RESET TOTAL)
+-- Borra todas las tablas y las recrea desde cero.
 -- ==========================================================
+
+DROP TABLE IF EXISTS schedule_slots CASCADE;
+DROP TABLE IF EXISTS schedules CASCADE;
+DROP TABLE IF EXISTS flashcards CASCADE;
+DROP TABLE IF EXISTS flashcard_decks CASCADE;
+DROP TABLE IF EXISTS habit_logs CASCADE;
+DROP TABLE IF EXISTS habits CASCADE;
+DROP TABLE IF EXISTS routine_items CASCADE;
+DROP TABLE IF EXISTS routines CASCADE;
+DROP TABLE IF EXISTS study_room_messages CASCADE;
+DROP TABLE IF EXISTS study_room_participants CASCADE;
+DROP TABLE IF EXISTS study_rooms CASCADE;
+DROP TABLE IF EXISTS message_group_members CASCADE;
+DROP TABLE IF EXISTS message_groups CASCADE;
+DROP TABLE IF EXISTS messages CASCADE;
+DROP TABLE IF EXISTS reactions CASCADE;
+DROP TABLE IF EXISTS friendships CASCADE;
+DROP TABLE IF EXISTS badges CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS notes CASCADE;
+DROP TABLE IF EXISTS study_sessions CASCADE;
+DROP TABLE IF EXISTS subtasks CASCADE;
+DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS subjects CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
 
 -- ==========================================================
 -- CORE TABLES
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
   full_name TEXT DEFAULT '',
@@ -41,7 +67,7 @@ CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
-CREATE TABLE IF NOT EXISTS subjects (
+CREATE TABLE subjects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -49,7 +75,7 @@ CREATE TABLE IF NOT EXISTS subjects (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS tasks (
+CREATE TABLE tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -61,7 +87,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS subtasks (
+CREATE TABLE subtasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -71,7 +97,7 @@ CREATE TABLE IF NOT EXISTS subtasks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS study_sessions (
+CREATE TABLE study_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -81,7 +107,7 @@ CREATE TABLE IF NOT EXISTS study_sessions (
   completed BOOLEAN DEFAULT FALSE
 );
 
-CREATE TABLE IF NOT EXISTS notes (
+CREATE TABLE notes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title TEXT DEFAULT 'Sin título',
@@ -94,7 +120,7 @@ CREATE TABLE IF NOT EXISTS notes (
 -- SOCIAL TABLES
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS profiles (
+CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   username TEXT UNIQUE NOT NULL,
   display_name TEXT DEFAULT '',
@@ -112,7 +138,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS badges (
+CREATE TABLE badges (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   badge_type TEXT NOT NULL,
@@ -122,7 +148,7 @@ CREATE TABLE IF NOT EXISTS badges (
   earned_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS friendships (
+CREATE TABLE friendships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   requester_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   addressee_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -131,7 +157,7 @@ CREATE TABLE IF NOT EXISTS friendships (
   UNIQUE(requester_id, addressee_id)
 );
 
-CREATE TABLE IF NOT EXISTS reactions (
+CREATE TABLE reactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   target_type TEXT NOT NULL CHECK (target_type IN ('status', 'profile', 'message')),
@@ -141,7 +167,7 @@ CREATE TABLE IF NOT EXISTS reactions (
   UNIQUE(user_id, target_type, target_id)
 );
 
-CREATE TABLE IF NOT EXISTS messages (
+CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   receiver_id UUID REFERENCES users(id) ON DELETE CASCADE,
@@ -152,7 +178,7 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS message_groups (
+CREATE TABLE message_groups (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -160,7 +186,7 @@ CREATE TABLE IF NOT EXISTS message_groups (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS message_group_members (
+CREATE TABLE message_group_members (
   group_id UUID NOT NULL REFERENCES message_groups(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   joined_at TIMESTAMPTZ DEFAULT NOW(),
@@ -171,7 +197,7 @@ CREATE TABLE IF NOT EXISTS message_group_members (
 -- STUDY ROOMS
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS study_rooms (
+CREATE TABLE study_rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   host_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -184,7 +210,7 @@ CREATE TABLE IF NOT EXISTS study_rooms (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS study_room_participants (
+CREATE TABLE study_room_participants (
   room_id UUID NOT NULL REFERENCES study_rooms(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   role TEXT DEFAULT 'participant' CHECK (role IN ('host', 'participant')),
@@ -192,7 +218,7 @@ CREATE TABLE IF NOT EXISTS study_room_participants (
   PRIMARY KEY (room_id, user_id)
 );
 
-CREATE TABLE IF NOT EXISTS study_room_messages (
+CREATE TABLE study_room_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   room_id UUID NOT NULL REFERENCES study_rooms(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -204,7 +230,7 @@ CREATE TABLE IF NOT EXISTS study_room_messages (
 -- ROUTINES & HABITS
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS routines (
+CREATE TABLE routines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -213,7 +239,7 @@ CREATE TABLE IF NOT EXISTS routines (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS routine_items (
+CREATE TABLE routine_items (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   routine_id UUID NOT NULL REFERENCES routines(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -226,7 +252,7 @@ CREATE TABLE IF NOT EXISTS routine_items (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS habits (
+CREATE TABLE habits (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
@@ -236,7 +262,7 @@ CREATE TABLE IF NOT EXISTS habits (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS habit_logs (
+CREATE TABLE habit_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   habit_id UUID NOT NULL REFERENCES habits(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -250,7 +276,7 @@ CREATE TABLE IF NOT EXISTS habit_logs (
 -- FLASHCARDS
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS flashcard_decks (
+CREATE TABLE flashcard_decks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
@@ -259,7 +285,7 @@ CREATE TABLE IF NOT EXISTS flashcard_decks (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS flashcards (
+CREATE TABLE flashcards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   deck_id UUID NOT NULL REFERENCES flashcard_decks(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -276,14 +302,14 @@ CREATE TABLE IF NOT EXISTS flashcards (
 -- SCHEDULE
 -- ==========================================================
 
-CREATE TABLE IF NOT EXISTS schedules (
+CREATE TABLE schedules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL DEFAULT 'Mi Horario',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS schedule_slots (
+CREATE TABLE schedule_slots (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   schedule_id UUID NOT NULL REFERENCES schedules(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -300,28 +326,28 @@ CREATE TABLE IF NOT EXISTS schedule_slots (
 -- INDEXES
 -- ==========================================================
 
-CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
-CREATE INDEX IF NOT EXISTS idx_tasks_subject ON tasks(subject_id);
-CREATE INDEX IF NOT EXISTS idx_subtasks_task ON subtasks(task_id);
-CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id);
-CREATE INDEX IF NOT EXISTS idx_study_sessions_user ON study_sessions(user_id);
-CREATE INDEX IF NOT EXISTS idx_study_sessions_date ON study_sessions(started_at);
-CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
-CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
-CREATE INDEX IF NOT EXISTS idx_friendships_requester ON friendships(requester_id);
-CREATE INDEX IF NOT EXISTS idx_friendships_addressee ON friendships(addressee_id);
-CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);
-CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id);
-CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id);
-CREATE INDEX IF NOT EXISTS idx_room_messages ON study_room_messages(room_id);
-CREATE INDEX IF NOT EXISTS idx_room_participants ON study_room_participants(room_id);
-CREATE INDEX IF NOT EXISTS idx_habits_user ON habits(user_id);
-CREATE INDEX IF NOT EXISTS idx_habit_logs_date ON habit_logs(completed_date);
-CREATE INDEX IF NOT EXISTS idx_flashcards_deck ON flashcards(deck_id);
-CREATE INDEX IF NOT EXISTS idx_flashcards_review ON flashcards(next_review);
-CREATE INDEX IF NOT EXISTS idx_schedule_slots ON schedule_slots(schedule_id);
-CREATE INDEX IF NOT EXISTS idx_badges_user ON badges(user_id);
+CREATE INDEX idx_tasks_user ON tasks(user_id);
+CREATE INDEX idx_tasks_status ON tasks(status);
+CREATE INDEX idx_tasks_subject ON tasks(subject_id);
+CREATE INDEX idx_subtasks_task ON subtasks(task_id);
+CREATE INDEX idx_subjects_user ON subjects(user_id);
+CREATE INDEX idx_study_sessions_user ON study_sessions(user_id);
+CREATE INDEX idx_study_sessions_date ON study_sessions(started_at);
+CREATE INDEX idx_notes_user ON notes(user_id);
+CREATE INDEX idx_profiles_username ON profiles(username);
+CREATE INDEX idx_friendships_requester ON friendships(requester_id);
+CREATE INDEX idx_friendships_addressee ON friendships(addressee_id);
+CREATE INDEX idx_messages_sender ON messages(sender_id);
+CREATE INDEX idx_messages_receiver ON messages(receiver_id);
+CREATE INDEX idx_messages_group ON messages(group_id);
+CREATE INDEX idx_room_messages ON study_room_messages(room_id);
+CREATE INDEX idx_room_participants ON study_room_participants(room_id);
+CREATE INDEX idx_habits_user ON habits(user_id);
+CREATE INDEX idx_habit_logs_date ON habit_logs(completed_date);
+CREATE INDEX idx_flashcards_deck ON flashcards(deck_id);
+CREATE INDEX idx_flashcards_review ON flashcards(next_review);
+CREATE INDEX idx_schedule_slots ON schedule_slots(schedule_id);
+CREATE INDEX idx_badges_user ON badges(user_id);
 
 -- ==========================================================
 -- ROW LEVEL SECURITY
@@ -352,40 +378,31 @@ ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedule_slots ENABLE ROW LEVEL SECURITY;
 
--- Users
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON users FOR UPDATE USING (auth.uid() = id);
 
--- Profiles (public read, own write)
 CREATE POLICY "Profiles are publicly readable" ON profiles FOR SELECT USING (true);
 CREATE POLICY "Users can create own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
--- Subjects
 CREATE POLICY "Users can view own subjects" ON subjects FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own subjects" ON subjects FOR ALL USING (auth.uid() = user_id);
 
--- Tasks
 CREATE POLICY "Users can view own tasks" ON tasks FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own tasks" ON tasks FOR ALL USING (auth.uid() = user_id);
 
--- Subtasks
 CREATE POLICY "Users can view own subtasks" ON subtasks FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own subtasks" ON subtasks FOR ALL USING (auth.uid() = user_id);
 
--- Study Sessions
 CREATE POLICY "Users can view own sessions" ON study_sessions FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own sessions" ON study_sessions FOR ALL USING (auth.uid() = user_id);
 
--- Notes
 CREATE POLICY "Users can view own notes" ON notes FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own notes" ON notes FOR ALL USING (auth.uid() = user_id);
 
--- Badges
 CREATE POLICY "Badges are publicly readable" ON badges FOR SELECT USING (true);
 CREATE POLICY "Users can manage own badges" ON badges FOR ALL USING (auth.uid() = user_id);
 
--- Friendships
 CREATE POLICY "Users can view own friendships" ON friendships FOR SELECT
   USING (auth.uid() = requester_id OR auth.uid() = addressee_id);
 CREATE POLICY "Users can create friendships" ON friendships FOR INSERT
@@ -393,11 +410,9 @@ CREATE POLICY "Users can create friendships" ON friendships FOR INSERT
 CREATE POLICY "Users can update own friendships" ON friendships FOR UPDATE
   USING (auth.uid() = addressee_id OR auth.uid() = requester_id);
 
--- Reactions
 CREATE POLICY "Reactions are readable on public content" ON reactions FOR SELECT USING (true);
 CREATE POLICY "Users can manage own reactions" ON reactions FOR ALL USING (auth.uid() = user_id);
 
--- Messages
 CREATE POLICY "Users can view own messages" ON messages FOR SELECT
   USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 CREATE POLICY "Users can send messages" ON messages FOR INSERT
@@ -405,19 +420,16 @@ CREATE POLICY "Users can send messages" ON messages FOR INSERT
 CREATE POLICY "Users can update own messages" ON messages FOR UPDATE
   USING (auth.uid() = receiver_id);
 
--- Message Groups
 CREATE POLICY "Users can view groups they belong to" ON message_groups FOR SELECT
   USING (EXISTS (SELECT 1 FROM message_group_members WHERE group_id = message_groups.id AND user_id = auth.uid()));
 CREATE POLICY "Users can create groups" ON message_groups FOR INSERT
   WITH CHECK (auth.uid() = created_by);
 
--- Message Group Members
 CREATE POLICY "Users can view members of their groups" ON message_group_members FOR SELECT
   USING (EXISTS (SELECT 1 FROM message_group_members mgm WHERE mgm.group_id = message_group_members.group_id AND mgm.user_id = auth.uid()));
 CREATE POLICY "Users can manage group membership" ON message_group_members FOR ALL
   USING (EXISTS (SELECT 1 FROM message_groups WHERE id = group_id AND created_by = auth.uid()));
 
--- Study Rooms
 CREATE POLICY "Public rooms are readable" ON study_rooms FOR SELECT
   USING (is_public = true OR host_id = auth.uid() OR EXISTS (
     SELECT 1 FROM study_room_participants WHERE room_id = study_rooms.id AND user_id = auth.uid()
@@ -427,7 +439,6 @@ CREATE POLICY "Users can create rooms" ON study_rooms FOR INSERT
 CREATE POLICY "Host can update room" ON study_rooms FOR UPDATE
   USING (auth.uid() = host_id);
 
--- Study Room Participants
 CREATE POLICY "Room participants are visible" ON study_room_participants FOR SELECT
   USING (EXISTS (SELECT 1 FROM study_room_participants srp WHERE srp.room_id = study_room_participants.room_id AND srp.user_id = auth.uid()));
 CREATE POLICY "Users can join rooms" ON study_room_participants FOR INSERT
@@ -435,7 +446,6 @@ CREATE POLICY "Users can join rooms" ON study_room_participants FOR INSERT
 CREATE POLICY "Users can leave rooms" ON study_room_participants FOR DELETE
   USING (auth.uid() = user_id);
 
--- Study Room Messages
 CREATE POLICY "Room members can read messages" ON study_room_messages FOR SELECT
   USING (EXISTS (SELECT 1 FROM study_room_participants WHERE room_id = study_room_messages.room_id AND user_id = auth.uid()));
 CREATE POLICY "Room members can send messages" ON study_room_messages FOR INSERT
@@ -443,41 +453,26 @@ CREATE POLICY "Room members can send messages" ON study_room_messages FOR INSERT
     SELECT 1 FROM study_room_participants WHERE room_id = study_room_messages.room_id AND user_id = auth.uid()
   ));
 
--- Routines
 CREATE POLICY "Users can view own routines" ON routines FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own routines" ON routines FOR ALL USING (auth.uid() = user_id);
 
--- Routine Items
 CREATE POLICY "Users can view own routine items" ON routine_items FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own routine items" ON routine_items FOR ALL USING (auth.uid() = user_id);
 
--- Habits
 CREATE POLICY "Users can view own habits" ON habits FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own habits" ON habits FOR ALL USING (auth.uid() = user_id);
 
--- Habit Logs
 CREATE POLICY "Users can view own habit logs" ON habit_logs FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own habit logs" ON habit_logs FOR ALL USING (auth.uid() = user_id);
 
--- Flashcard Decks
 CREATE POLICY "Users can view own decks" ON flashcard_decks FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own decks" ON flashcard_decks FOR ALL USING (auth.uid() = user_id);
 
--- Flashcards
 CREATE POLICY "Users can view own flashcards" ON flashcards FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own flashcards" ON flashcards FOR ALL USING (auth.uid() = user_id);
 
--- Schedules
 CREATE POLICY "Users can view own schedules" ON schedules FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own schedules" ON schedules FOR ALL USING (auth.uid() = user_id);
 
--- Schedule Slots
 CREATE POLICY "Users can view own schedule slots" ON schedule_slots FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own schedule slots" ON schedule_slots FOR ALL USING (auth.uid() = user_id);
-
--- Enable Realtime for study rooms
-ALTER PUBLICATION supabase_realtime ADD TABLE study_rooms;
-ALTER PUBLICATION supabase_realtime ADD TABLE study_room_messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE study_room_participants;
-ALTER PUBLICATION supabase_realtime ADD TABLE messages;
-ALTER PUBLICATION supabase_realtime ADD TABLE profiles;

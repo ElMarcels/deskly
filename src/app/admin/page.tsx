@@ -272,6 +272,7 @@ function UsersTab() {
 
   if (detail) {
     return (
+      <>
       <div className="space-y-6">
         <NeonButton onClick={() => setDetail(null)} variant="ghost" size="sm"><ArrowLeft size={14} /> Volver</NeonButton>
         <GlassCard className="p-6">
@@ -341,6 +342,7 @@ function UsersTab() {
         onConfirm={() => { if (deleteTarget) deleteUser(deleteTarget); }}
         title="Eliminar usuario"
         message={`¿Eliminar a ${deleteTarget?.email || "este usuario"} y todos sus datos? Esta acción no se puede deshacer.`} />
+      </>
     );
   }
 

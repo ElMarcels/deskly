@@ -37,6 +37,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       if (data.user) {
         setUserEmail(data.user.email || "");
         setUserName(data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "Usuario");
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("banned")
+          .eq("id", data.user.id)
+          .single();
+        if (profile?.banned) {
+          router.replace("/suspended");
+          return;
+        }
       } else {
         setUserEmail("usuario@deskly.app");
         setUserName("Usuario");

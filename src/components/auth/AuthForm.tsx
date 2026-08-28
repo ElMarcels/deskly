@@ -42,8 +42,8 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
             .eq("id", uid)
             .single();
           if (profile?.banned) {
-            await supabase.auth.signOut();
-            throw new Error("Tu cuenta ha sido suspendida. Contacta con soporte.");
+            window.location.href = "/suspended";
+            return;
           }
         }
       }

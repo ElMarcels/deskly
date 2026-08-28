@@ -137,6 +137,7 @@ CREATE TABLE profiles (
   longest_streak INTEGER DEFAULT 0,
   banned BOOLEAN DEFAULT FALSE,
   suspension_reason TEXT,
+  suspension_until TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

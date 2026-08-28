@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase/client";
 export default function SuspendedPage() {
   const [checking, setChecking] = useState(true);
   const [reason, setReason] = useState<string | null>(null);
+  const [until, setUntil] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -19,10 +20,16 @@ export default function SuspendedPage() {
       }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("suspension_reason")
+        .select("banned, suspension_reason, suspension_until")
         .eq("id", data.user.id)
         .single();
+      const expired = profile?.suspension_until && new Date(profile.suspension_until).getTime() < Date.now();
+      if (!profile?.banned || expired) {
+        window.location.href = "/dashboard";
+        return;
+      }
       setReason(profile?.suspension_reason || null);
+      setUntil(profile?.suspension_until || null);
       setChecking(false);
     })();
   }, []);
@@ -72,6 +79,15 @@ export default function SuspendedPage() {
             <p className="text-xs text-[#e0e0ff]/50">
               El acceso a tu cuenta seguirá bloqueado hasta que se resuelva esta situación.
               Todos los datos asociados a tu cuenta están deshabilitados durante este periodo.
+            </p>
+          </div>
+        )}
+
+        {until && (
+          <div className="mb-5 p-3 rounded-xl bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.2)]">
+            <p className="text-xs text-[#e0e0ff]/50">
+              Tu acceso se restaurará automáticamente el{" "}
+              <span className="font-bold text-[#a855f7]">{new Date(until).toLocaleString("es-ES")}</span>.
             </p>
           </div>
         )}

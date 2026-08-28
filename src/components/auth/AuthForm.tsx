@@ -38,10 +38,11 @@ export default function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         if (uid) {
           const { data: profile } = await supabase
             .from("profiles")
-            .select("banned")
+            .select("banned, suspension_until")
             .eq("id", uid)
             .single();
-          if (profile?.banned) {
+          const expired = profile?.suspension_until && new Date(profile.suspension_until).getTime() < Date.now();
+          if (profile?.banned && !expired) {
             window.location.href = "/suspended";
             return;
           }

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
+import Modal, { ConfirmModal } from "@/components/ui/Modal";
 import { supabase } from "@/lib/supabase/client";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
@@ -34,6 +35,7 @@ interface AppUser {
   created_at: string;
   banned?: boolean;
   suspension_reason?: string | null;
+  suspension_until?: string | null;
   last_active?: string;
   pomodoros_total?: number;
   hours_total?: number;
@@ -41,6 +43,66 @@ interface AppUser {
   longest_streak?: number;
   bio?: string;
   username?: string;
+}
+
+const DURATIONS = [
+  { label: "24 horas", ms: 24 * 3600 * 1000 },
+  { label: "7 días", ms: 7 * 24 * 3600 * 1000 },
+  { label: "30 días", ms: 30 * 24 * 3600 * 1000 },
+  { label: "Indefinido", ms: null },
+];
+
+function SuspendModal({ open, user, onClose, onConfirm }: {
+  open: boolean;
+  user: AppUser | null;
+  onClose: () => void;
+  onConfirm: (reason: string, until: string | null) => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [duration, setDuration] = useState<number | null>(24 * 3600 * 1000);
+
+  useEffect(() => {
+    if (open) {
+      setReason(user?.suspension_reason || "");
+      setDuration(24 * 3600 * 1000);
+    }
+  }, [open, user]);
+
+  return (
+    <Modal open={open} onClose={onClose} title="Suspender usuario"
+      footer={
+        <>
+          <NeonButton variant="ghost" onClick={onClose}>Cancelar</NeonButton>
+          <NeonButton variant="danger" onClick={() => {
+            const until = duration === null ? null : new Date(Date.now() + duration).toISOString();
+            onConfirm(reason.trim(), until);
+            onClose();
+          }} disabled={!reason.trim()}>
+            <Ban size={14} /> Suspender
+          </NeonButton>
+        </>
+      }>
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs text-[#e0e0ff]/50 mb-1">Duración</label>
+          <div className="grid grid-cols-2 gap-2">
+            {DURATIONS.map(d => (
+              <button key={d.label} onClick={() => setDuration(d.ms)}
+                className={`px-3 py-2 rounded-lg text-xs cursor-pointer transition-all border ${duration === d.ms ? "bg-[rgba(168,85,247,0.2)] text-[#a855f7] border-[rgba(168,85,247,0.4)]" : "bg-[#12122a]/60 text-[#e0e0ff]/50 border-[rgba(168,85,247,0.15)] hover:text-[#e0e0ff]"}`}>
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-xs text-[#e0e0ff]/50 mb-1">Motivo (se mostrará al usuario)</label>
+          <textarea rows={3} value={reason} onChange={e => setReason(e.target.value)}
+            className="w-full bg-[#12122a] border border-[rgba(168,85,247,0.3)] rounded-lg px-3 py-2 text-sm text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/25 resize-none"
+            placeholder="Escribe el motivo de la suspensión..." />
+        </div>
+      </div>
+    </Modal>
+  );
 }
 
 export default function AdminPage() {
@@ -123,6 +185,8 @@ function UsersTab() {
   const [detail, setDetail] = useState<AppUser | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [suspendTarget, setSuspendTarget] = useState<AppUser | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AppUser | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -138,7 +202,7 @@ function UsersTab() {
       if (ids.length) {
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("id, username, banned, suspension_reason, last_active, bio, pomodoros_total, hours_total, streak_days, longest_streak")
+          .select("id, username, banned, suspension_reason, suspension_until, last_active, bio, pomodoros_total, hours_total, streak_days, longest_streak")
           .in("id", ids);
         (profiles || []).forEach(p => { profileMap[p.id] = p; });
       }
@@ -150,28 +214,37 @@ function UsersTab() {
 
   useEffect(() => { load(); }, [load]);
 
-  const toggleBan = async (u: AppUser) => {
-    const next = !u.banned;
-    let reason: string | null = u.suspension_reason || null;
-    if (next) {
-      reason = prompt("Motivo de la suspensión (se mostrará al usuario):", u.suspension_reason || "");
-      if (reason === null) return;
-    }
+  const applySuspend = async (u: AppUser, reason: string, until: string | null) => {
     setBusyId(u.id);
     const { error } = await supabase
       .from("profiles")
-      .update({ banned: next, suspension_reason: next ? reason : null })
+      .update({ banned: true, suspension_reason: reason, suspension_until: until })
       .eq("id", u.id);
     if (error) setMsg("Error: " + error.message);
     else {
-      setUsers(users.map(x => x.id === u.id ? { ...x, banned: next, suspension_reason: next ? reason : null } : x));
-      if (detail?.id === u.id) setDetail({ ...detail, banned: next, suspension_reason: next ? reason : null });
+      const updated = { ...u, banned: true, suspension_reason: reason, suspension_until: until };
+      setUsers(users.map(x => x.id === u.id ? updated : x));
+      if (detail?.id === u.id) setDetail(updated);
+    }
+    setBusyId(null);
+  };
+
+  const reactivate = async (u: AppUser) => {
+    setBusyId(u.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ banned: false, suspension_reason: null, suspension_until: null })
+      .eq("id", u.id);
+    if (error) setMsg("Error: " + error.message);
+    else {
+      const updated = { ...u, banned: false, suspension_reason: null, suspension_until: null };
+      setUsers(users.map(x => x.id === u.id ? updated : x));
+      if (detail?.id === u.id) setDetail(updated);
     }
     setBusyId(null);
   };
 
   const deleteUser = async (u: AppUser) => {
-    if (!confirm(`¿Eliminar a ${u.email} y todos sus datos? Esta acción no se puede deshacer.`)) return;
     setBusyId(u.id);
     const tables = ["messages", "study_room_messages", "friendships", "reactions", "tickets", "habit_logs", "study_room_participants"];
     for (const t of tables) {
@@ -217,15 +290,20 @@ function UsersTab() {
                 )}
                 <span className="text-[10px] text-[#e0e0ff]/40">Registrado: {new Date(detail.created_at).toLocaleDateString("es-ES")}</span>
               </div>
-              {detail.banned && detail.suspension_reason && (
-                <p className="text-xs text-red-400/80 mt-2"><span className="font-bold">Motivo: </span>{detail.suspension_reason}</p>
+              {detail.banned && (
+                <div className="mt-2 text-xs space-y-0.5">
+                  {detail.suspension_reason && <p className="text-red-400/80"><span className="font-bold">Motivo: </span>{detail.suspension_reason}</p>}
+                  <p className="text-[#e0e0ff]/40">
+                    {detail.suspension_until ? `Hasta: ${new Date(detail.suspension_until).toLocaleString("es-ES")}` : "Suspensión indefinida"}
+                  </p>
+                </div>
               )}
             </div>
             <div className="flex flex-col gap-2">
-              <NeonButton onClick={() => toggleBan(detail)} variant={detail.banned ? "secondary" : "danger"} size="sm" disabled={busyId === detail.id}>
+              <NeonButton onClick={() => detail.banned ? reactivate(detail) : setSuspendTarget(detail)} variant={detail.banned ? "secondary" : "danger"} size="sm" disabled={busyId === detail.id}>
                 {detail.banned ? <><Unlock size={14} /> Reactivar</> : <><Ban size={14} /> Suspender</>}
               </NeonButton>
-              <NeonButton onClick={() => deleteUser(detail)} variant="danger" size="sm" disabled={busyId === detail.id}>
+              <NeonButton onClick={() => setDeleteTarget(detail)} variant="danger" size="sm" disabled={busyId === detail.id}>
                 <Trash2 size={14} /> Eliminar
               </NeonButton>
             </div>
@@ -256,6 +334,13 @@ function UsersTab() {
           <p className="text-xs text-[#e0e0ff]/40">Última conexión: {detail.last_active ? new Date(detail.last_active).toLocaleString("es-ES") : "Desconocida"}</p>
         </GlassCard>
       </div>
+
+      <SuspendModal open={!!suspendTarget} user={suspendTarget} onClose={() => setSuspendTarget(null)}
+        onConfirm={(reason, until) => { if (suspendTarget) applySuspend(suspendTarget, reason, until); }} />
+      <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) deleteUser(deleteTarget); }}
+        title="Eliminar usuario"
+        message={`¿Eliminar a ${deleteTarget?.email || "este usuario"} y todos sus datos? Esta acción no se puede deshacer.`} />
     );
   }
 
@@ -311,11 +396,11 @@ function UsersTab() {
                     <div className="flex gap-1.5 items-center">
                       <button title="Ver perfil" onClick={() => setDetail(u)}
                         className="p-1.5 rounded-lg hover:bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#a855f7] cursor-pointer"><Eye size={14} /></button>
-                      <button title={u.banned ? "Reactivar" : "Suspender"} onClick={() => toggleBan(u)} disabled={busyId === u.id}
+                      <button title={u.banned ? "Reactivar" : "Suspender"} onClick={() => u.banned ? reactivate(u) : setSuspendTarget(u)} disabled={busyId === u.id}
                         className="p-1.5 rounded-lg hover:bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-yellow-400 cursor-pointer disabled:opacity-40">
                         {u.banned ? <Unlock size={14} /> : <Lock size={14} />}
                       </button>
-                      <button title="Eliminar" onClick={() => deleteUser(u)} disabled={busyId === u.id}
+                      <button title="Eliminar" onClick={() => setDeleteTarget(u)} disabled={busyId === u.id}
                         className="p-1.5 rounded-lg hover:bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-red-400 cursor-pointer disabled:opacity-40"><Trash2 size={14} /></button>
                     </div>
                   </td>
@@ -325,6 +410,13 @@ function UsersTab() {
           </table>
         </div>
       )}
+
+      <SuspendModal open={!!suspendTarget} user={suspendTarget} onClose={() => setSuspendTarget(null)}
+        onConfirm={(reason, until) => { if (suspendTarget) applySuspend(suspendTarget, reason, until); }} />
+      <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) deleteUser(deleteTarget); }}
+        title="Eliminar usuario"
+        message={`¿Eliminar a ${deleteTarget?.email || "este usuario"} y todos sus datos? Esta acción no se puede deshacer.`} />
     </GlassCard>
   );
 }
@@ -511,6 +603,7 @@ function RoomsTab() {
   const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -536,7 +629,6 @@ function RoomsTab() {
   }, []);
 
   const remove = async (id: string) => {
-    if (!confirm("¿Eliminar esta sala?")) return;
     const { error } = await supabase.from("study_rooms").delete().eq("id", id);
     if (error) setMsg("Error: " + error.message);
     else setRooms(rooms.filter(r => r.id !== id));
@@ -558,13 +650,17 @@ function RoomsTab() {
                   Host: {r.hostName} · {r.status} · {r.is_public ? "Pública" : "Privada"} · max {r.max_participants}
                 </p>
               </div>
-              <button onClick={() => remove(r.id)} title="Eliminar"
+              <button onClick={() => setDeleteTarget(r)} title="Eliminar"
                 className="p-1.5 rounded-lg hover:bg-red-500/20 text-[#e0e0ff]/30 hover:text-red-400 cursor-pointer shrink-0"><Trash2 size={14} /></button>
             </div>
           ))}
           {rooms.length === 0 && <p className="text-center text-[#e0e0ff]/30 text-sm py-8">No hay salas en la base de datos</p>}
         </div>
       )}
+      <ConfirmModal open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
+        onConfirm={() => { if (deleteTarget) remove(deleteTarget.id); }}
+        title="Eliminar sala"
+        message={`¿Eliminar la sala "${deleteTarget?.name || ""}"? Esta acción no se puede deshacer.`} />
     </GlassCard>
   );
 }

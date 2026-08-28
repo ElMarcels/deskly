@@ -39,10 +39,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         setUserName(data.user.user_metadata?.full_name || data.user.email?.split("@")[0] || "Usuario");
         const { data: profile } = await supabase
           .from("profiles")
-          .select("banned")
+          .select("banned, suspension_until")
           .eq("id", data.user.id)
           .single();
-        if (profile?.banned) {
+        const expired = profile?.suspension_until && new Date(profile.suspension_until).getTime() < Date.now();
+        if (profile?.banned && !expired) {
           router.replace("/suspended");
           return;
         }

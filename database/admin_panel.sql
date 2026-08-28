@@ -32,6 +32,7 @@ END $$;
 -- ==========================================================
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banned BOOLEAN DEFAULT FALSE;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS suspension_reason TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS suspension_until TIMESTAMPTZ;
 
 -- ==========================================================
 -- 2) Tabla de ANUNCIOS

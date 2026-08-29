@@ -11,12 +11,14 @@ const SOUNDS = [
   { id: "fire", name: "Chimenea", emoji: "🔥" }, { id: "whitenoise", name: "Ruido Blanco", emoji: "📻" },
 ];
 
-const PRESETS = [
+const PRESETS: { id: string; name: string; icon: string; layers: Record<string, number> }[] = [
   { id: "lluvia_noche", name: "Lluvia nocturna", icon: "🌧", layers: { rain: 0.5, fire: 0.25 } },
   { id: "bosque_rio", name: "Bosque sereno", icon: "🌲", layers: { forest: 0.5, ocean: 0.25 } },
   { id: "cafe_lluvia", name: "Café atemporal", icon: "☕", layers: { cafe: 0.4, rain: 0.2 } },
   { id: "todo_off", name: "Silencio", icon: "🔇", layers: {} },
 ];
+
+interface SoundscapePreset { id: string; name: string; icon: string; layers: Record<string, number>; }
 
 function generateNoise(type: "brown" | "pink" | "white"): Float32Array {
   const sr = 44100, dur = 4, samples = sr * dur, buf = new Float32Array(samples);
@@ -81,7 +83,7 @@ export default function AmbientSounds() {
     else setAmbientLayer(id, 0.3);
   };
 
-  const applyPreset = (preset: { layers: Record<string, number> }) => {
+  const applyPreset = (preset: SoundscapePreset) => {
     setMuted(false);
     const current = { ...ambientLayers };
     Object.keys(current).forEach(k => delete current[k]);

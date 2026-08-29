@@ -478,6 +478,8 @@ CREATE POLICY "Users can create rooms" ON study_rooms FOR INSERT
   WITH CHECK (auth.uid() = host_id);
 CREATE POLICY "Host can update room" ON study_rooms FOR UPDATE
   USING (auth.uid() = host_id);
+CREATE POLICY "Host can delete room" ON study_rooms FOR DELETE
+  USING (auth.uid() = host_id);
 CREATE POLICY "Admin can select all rooms" ON study_rooms FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
 CREATE POLICY "Admin can delete rooms" ON study_rooms FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 

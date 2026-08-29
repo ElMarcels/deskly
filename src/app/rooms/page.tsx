@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import AppLayout from "@/components/layout/AppLayout";
 import { Radio, Plus, Users, Lock, Unlock, VolumeX, Play, Pause, Send, ArrowLeft, Trash2, X, Calendar, Bell, Clock as ClockIcon } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
+import { supabase } from "@/lib/supabase/client";
 
 interface Room {
-  id: string; name: string; host: string; isPublic: boolean; isSilent: boolean;
+  id: string; name: string; host: string; hostId: string; isPublic: boolean; isSilent: boolean;
   maxParticipants: number; timerDuration: number;
   status: "lobby" | "active" | "completed"; timeLeft: number;
 }
 interface RoomMessage { id: string; user: string; content: string; time: string; }
 interface Session { id: string; title: string; day: string; start: string; end: string; reminder: number; }
 
-const STORAGE = "deskly-rooms";
 const SESSIONS_STORAGE = "deskly-room-schedule";
 
 const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -22,6 +22,9 @@ const DAYS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "
 export default function RoomsPage() {
   const [view, setView] = useState<"list" | "room" | "schedule">("list");
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [uid, setUid] = useState<string | null>(null);
+  const [roomsLoading, setRoomsLoading] = useState(true);
+  const [roomError, setRoomError] = useState("");
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [messages, setMessages] = useState<RoomMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -50,11 +53,41 @@ export default function RoomsPage() {
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
-  useEffect(() => {
-    try { const s = localStorage.getItem(STORAGE); if (s) setRooms(JSON.parse(s)); } catch {}
+  const loadRooms = useCallback(async () => {
+    setRoomsLoading(true);
+    const { data, error } = await supabase
+      .from("study_rooms")
+      .select("id, name, host_id, is_public, is_silent, max_participants, timer_duration, status, created_at")
+      .order("created_at", { ascending: false });
+    if (error) {
+      setRoomError("Error: " + error.message + " (¿aplicaste las políticas y la tabla study_rooms?)");
+      setRooms([]);
+      setRoomsLoading(false);
+      return;
+    }
+    const ids = Array.from(new Set((data || []).map(r => r.host_id).filter(Boolean)));
+    let names: Record<string, string> = {};
+    if (ids.length) {
+      const { data: profiles } = await supabase.from("profiles").select("id, display_name, username").in("id", ids);
+      (profiles || []).forEach(p => { names[p.id] = p.display_name || p.username || "Host"; });
+    }
+    setRooms((data || []).map(r => ({
+      id: r.id, name: r.name, host: names[r.host_id] || "Host", hostId: r.host_id,
+      isPublic: !!r.is_public, isSilent: !!r.is_silent,
+      maxParticipants: r.max_participants, timerDuration: r.timer_duration,
+      status: r.status as any, timeLeft: (r.timer_duration || 25) * 60,
+    })));
+    setRoomError("");
+    setRoomsLoading(false);
   }, []);
 
-  useEffect(() => { try { localStorage.setItem(STORAGE, JSON.stringify(rooms)); } catch {} }, [rooms]);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      setUid(data.user?.id || null);
+      loadRooms();
+    })();
+  }, [loadRooms]);
 
   useEffect(() => {
     if (selectedRoom) setTimer(selectedRoom.timerDuration * 60);
@@ -72,23 +105,31 @@ export default function RoomsPage() {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [timerRunning, timer, selectedRoom]);
 
-  const createRoom = () => {
+  const createRoom = async () => {
     if (!newRoomName.trim()) return;
-    const room: Room = {
-      id: Date.now().toString(), name: newRoomName, host: "Tú",
-      isPublic: newRoomPublic, isSilent: newRoomSilent,
-      maxParticipants: 10, timerDuration: newRoomDuration,
-      status: "lobby", timeLeft: newRoomDuration * 60,
-    };
-    setRooms([...rooms, room]);
+    if (!uid) { setRoomError("Debes iniciar sesión para crear una sala."); return; }
+    const { error } = await supabase
+      .from("study_rooms")
+      .insert({
+        name: newRoomName.trim(), host_id: uid,
+        is_public: newRoomPublic, is_silent: newRoomSilent,
+        max_participants: 10, timer_duration: newRoomDuration, status: "lobby",
+      });
+    if (error) {
+      setRoomError("Error: " + error.message);
+      return;
+    }
     setNewRoomName(""); setShowCreateForm(false);
+    loadRooms();
   };
 
   const enterRoom = (room: Room) => { setSelectedRoom(room); setView("room"); setMessages([]); setTimerRunning(false); };
 
-  const deleteRoom = (id: string, e: React.MouseEvent) => {
+  const deleteRoom = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setRooms(rooms.filter(r => r.id !== id));
+    const { error } = await supabase.from("study_rooms").delete().eq("id", id);
+    if (error) setRoomError("Error: " + error.message);
+    else loadRooms();
   };
 
   const sendMessage = () => {
@@ -149,6 +190,10 @@ export default function RoomsPage() {
               </div>
             </div>
 
+            {roomError && (
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">{roomError}</div>
+            )}
+
             {showCreateForm && (
               <GlassCard className="p-5 animate-slide-up">
                 <div className="flex items-center justify-between mb-3">
@@ -180,7 +225,11 @@ export default function RoomsPage() {
               </GlassCard>
             )}
 
-            {rooms.length === 0 ? (
+            {roomsLoading ? (
+              <GlassCard className="p-12 text-center">
+                <p className="text-[#e0e0ff]/40 text-sm">Cargando salas...</p>
+              </GlassCard>
+            ) : rooms.length === 0 ? (
               <GlassCard className="p-12 text-center">
                 <Radio size={48} className="mx-auto text-[#e0e0ff]/10 mb-4" />
                 <p className="text-[#e0e0ff]/40">No hay salas de estudio</p>
@@ -202,7 +251,9 @@ export default function RoomsPage() {
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${room.status === "active" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}>
                           {room.status === "active" ? "🟢 En vivo" : "🟡 Lobby"}
                         </span>
-                        <button onClick={(e) => deleteRoom(room.id, e)} className="p-1 rounded hover:bg-red-500/20 text-[#e0e0ff]/20 hover:text-red-400 cursor-pointer"><Trash2 size={12} /></button>
+                        {uid === room.hostId && (
+                          <button onClick={(e) => deleteRoom(room.id, e)} className="p-1 rounded hover:bg-red-500/20 text-[#e0e0ff]/20 hover:text-red-400 cursor-pointer"><Trash2 size={12} /></button>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-[10px] text-[#e0e0ff]/40">

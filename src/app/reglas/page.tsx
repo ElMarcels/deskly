@@ -38,7 +38,6 @@ const SECTIONS = [
     items: [
       "El incumplimiento de estas reglas puede dar lugar a la suspensión temporal o indefinida de tu cuenta.",
       "Antes de restringir una cuenta se revisará el caso; las decisiones del equipo pueden ser definitivas.",
-      "Si crees que tu cuenta fue suspendida por error, contacta con el equipo a través de Soporte.",
     ],
   },
 ];

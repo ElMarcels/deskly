@@ -5,7 +5,7 @@ import AppLayout from "@/components/layout/AppLayout";
 import {
   ShieldCheck, Users, Trash2, Lock, Unlock,
   Activity, MessageSquare, Radio, Megaphone, LifeBuoy, Wrench,
-  Eye, Search, Ban, ArrowLeft, RefreshCw, Clock,
+  Eye, Search, Ban, ArrowLeft, RefreshCw, Clock, Send,
 } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
@@ -754,8 +754,10 @@ function TicketsTab() {
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
-  const [replyTarget, setReplyTarget] = useState<any | null>(null);
-  const [replyText, setReplyText] = useState("");
+  const [selected, setSelected] = useState<any | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
 
   const STATUS = { open: "Abierto", in_progress: "En curso", resolved: "Resuelto", closed: "Cerrado" } as any;
 
@@ -779,10 +781,41 @@ function TicketsTab() {
     })();
   }, []);
 
+  const loadMessages = async (t: any) => {
+    setSelected(t);
+    setText("");
+    const { data } = await supabase
+      .from("ticket_messages").select("*")
+      .eq("ticket_id", t.id).order("created_at", { ascending: true });
+    setMessages([{ id: "first", ticket_id: t.id, sender: "user", content: t.message, created_at: t.created_at }, ...(data || [])]);
+  };
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selected || !text.trim()) return;
+    setSending(true);
+    const { error } = await supabase.from("ticket_messages").insert({
+      ticket_id: selected.id, sender: "staff", content: text.trim(),
+    });
+    if (error) {
+      setMsg("Error: " + error.message + " (¿aplicaste el SQL ticket_conversations?)");
+    } else {
+      const { data } = await supabase
+        .from("ticket_messages").select("*")
+        .eq("ticket_id", selected.id).order("created_at", { ascending: true });
+      setMessages([{ id: "first", ticket_id: selected.id, sender: "user", content: selected.message, created_at: selected.created_at }, ...(data || [])]);
+      setText("");
+    }
+    setSending(false);
+  };
+
   const setStatus = async (id: string, status: string) => {
     const { error } = await supabase.from("tickets").update({ status }).eq("id", id);
     if (error) setMsg("Error: " + error.message);
-    else setList(list.map(t => t.id === id ? { ...t, status } : t));
+    else {
+      setList(list.map(t => t.id === id ? { ...t, status } : t));
+      if (selected && selected.id === id) setSelected({ ...selected, status });
+    }
   };
 
   const nextStatus = (s: string) => {
@@ -792,80 +825,75 @@ function TicketsTab() {
     return "open";
   };
 
-  const respond = async () => {
-    if (!replyTarget) return;
-    const { error } = await supabase
-      .from("tickets")
-      .update({ staff_response: replyText.trim(), responded_at: new Date().toISOString() })
-      .eq("id", replyTarget.id);
-    if (error) setMsg("Error: " + error.message);
-    else setList(list.map(t => t.id === replyTarget.id ? { ...t, staff_response: replyText.trim(), responded_at: new Date().toISOString() } : t));
-    setReplyTarget(null);
-    setReplyText("");
-  };
-
-  const openReply = (t: any) => {
-    setReplyTarget(t);
-    setReplyText(t.staff_response || "");
-  };
-
   return (
-    <GlassCard className="p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-[#e0e0ff]">Tickets de soporte ({list.length})</h3>
-        <span className="text-[10px] text-[#e0e0ff]/40">{list.filter(t => t.status === "open").length} abiertos</span>
-      </div>
-
-      {msg && <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs">{msg}</div>}
-
-      {loading ? (
-        <p className="text-center py-8 text-[#e0e0ff]/40 text-sm">Cargando tickets...</p>
-      ) : (
-        <div className="space-y-2">
-          {list.map(t => (
-            <div key={t.id} className="p-4 rounded-xl bg-[#12122a]/40 border border-[rgba(168,85,247,0.08)]">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-sm font-bold text-[#e0e0ff]">{t.subject}</p>
-                <button onClick={() => setStatus(t.id, nextStatus(t.status))}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${t.status === "open" ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : t.status === "in_progress" ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30" : t.status === "resolved" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#e0e0ff]"}`}>
-                  {STATUS[t.status]}
-                </button>
-              </div>
-              <p className="text-xs text-[#e0e0ff]/60">{t.message}</p>
-              <p className="text-[10px] text-[#e0e0ff]/30 mt-2">
-                {t.userName} · {new Date(t.created_at).toLocaleString("es-ES")}
-              </p>
-              {t.staff_response && (
-                <div className="mt-3 p-3 rounded-xl bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.2)]">
-                  <p className="text-[10px] font-bold text-[#a855f7] mb-1">Tu respuesta
-                    {t.responded_at && <span className="text-[#e0e0ff]/30 font-normal ml-2">{new Date(t.responded_at).toLocaleString("es-ES")}</span>}
-                  </p>
-                  <p className="text-xs text-[#e0e0ff]/80">{t.staff_response}</p>
+    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+      <GlassCard className="lg:col-span-2 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-[#e0e0ff]">Tickets ({list.length})</h3>
+          <span className="text-[10px] text-[#e0e0ff]/40">{list.filter(t => t.status === "open").length} abiertos</span>
+        </div>
+        {loading ? (
+          <p className="text-center py-8 text-[#e0e0ff]/40 text-sm">Cargando...</p>
+        ) : (
+          <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
+            {list.map(t => (
+              <button key={t.id} onClick={() => loadMessages(t)}
+                className={`w-full text-left p-3 rounded-lg cursor-pointer transition-colors ${selected?.id === t.id ? "bg-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)]" : "border border-transparent hover:bg-[#1a1a3e]"}`}>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs font-bold text-[#e0e0ff] truncate mr-2">{t.subject}</p>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${t.status === "open" ? "bg-yellow-500/20 text-yellow-300" : t.status === "in_progress" ? "bg-blue-500/20 text-blue-300" : t.status === "resolved" ? "bg-green-500/20 text-green-400" : "bg-[#1a1a3e] text-[#e0e0ff]/40"}`}>{STATUS[t.status]}</span>
                 </div>
-              )}
-              <button onClick={() => openReply(t)}
-                className="mt-3 px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer bg-[rgba(168,85,247,0.15)] text-[#a855f7] hover:bg-[rgba(168,85,247,0.25)] transition-colors">
-                {t.staff_response ? "Editar respuesta" : "Responder"}
+                <p className="text-[10px] text-[#e0e0ff]/40">{t.userName}</p>
+              </button>
+            ))}
+            {list.length === 0 && <p className="text-center text-[#e0e0ff]/30 text-sm py-8">No hay tickets</p>}
+          </div>
+        )}
+      </GlassCard>
+
+      <GlassCard className="lg:col-span-3 p-4 flex flex-col">
+        {selected ? (
+          <>
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-[rgba(168,85,247,0.1)]">
+              <p className="text-sm font-bold text-[#e0e0ff]">{selected.subject}</p>
+              <button onClick={() => setStatus(selected.id, nextStatus(selected.status))}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${selected.status === "open" ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : selected.status === "in_progress" ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30" : selected.status === "resolved" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#e0e0ff]"}`}>
+                {STATUS[selected.status]} · cambiar
               </button>
             </div>
-          ))}
-          {list.length === 0 && <p className="text-center text-[#e0e0ff]/30 text-sm py-8">No hay tickets</p>}
-        </div>
-      )}
 
-      <Modal open={!!replyTarget} onClose={() => { setReplyTarget(null); setReplyText(""); }} title="Responder ticket"
-        footer={
-          <>
-            <NeonButton variant="ghost" onClick={() => { setReplyTarget(null); setReplyText(""); }}>Cancelar</NeonButton>
-            <NeonButton variant="primary" onClick={respond} disabled={!replyText.trim()}>Enviar respuesta</NeonButton>
+            <div className="flex-1 min-h-[48vh] max-h-[60vh] overflow-y-auto space-y-3 pr-1 mb-3">
+              {messages.map(m => {
+                const isStaff = m.sender === "staff";
+                return (
+                  <div key={m.id} className={`flex ${isStaff ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] rounded-xl px-3 py-2 ${isStaff ? "bg-[rgba(168,85,247,0.2)] border border-[rgba(168,85,247,0.3)]" : "bg-[#1a1a3e] border border-[rgba(168,85,247,0.1)]"}`}>
+                      <p className={`text-[10px] mb-0.5 ${isStaff ? "text-[#a855f7]" : "text-[#e0e0ff]/40"}`}>
+                        {isStaff ? "Staff" : selected.userName}
+                      </p>
+                      <p className="text-xs text-[#e0e0ff]">{m.content}</p>
+                      <p className="text-[9px] text-[#e0e0ff]/20 mt-0.5">{new Date(m.created_at).toLocaleString("es-ES")}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {msg && <div className="mb-2 p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px]">{msg}</div>}
+
+            <form onSubmit={send} className="flex gap-2">
+              <input value={text} onChange={e => setText(e.target.value)} placeholder="Escribe al usuario..."
+                className="flex-1 bg-[#12122a] border border-[rgba(168,85,247,0.2)] rounded-xl px-3 py-2 text-xs text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/20" />
+              <NeonButton type="submit" variant="primary" size="sm" disabled={sending || !text.trim()}><Send size={14} /></NeonButton>
+            </form>
           </>
-        }>
-        <p className="text-xs text-[#e0e0ff]/50 mb-3"><span className="font-bold">{replyTarget?.subject}</span></p>
-        <textarea rows={4} value={replyText} onChange={e => setReplyText(e.target.value)}
-          className="w-full bg-[#12122a] border border-[rgba(168,85,247,0.3)] rounded-lg px-3 py-2 text-sm text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/25 resize-none"
-          placeholder="Escribe la respuesta para el usuario..." />
-      </Modal>
-    </GlassCard>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-[#e0e0ff]/30 text-sm">Selecciona un ticket para abrir la conversación</p>
+          </div>
+        )}
+      </GlassCard>
+    </div>
   );
 }
 

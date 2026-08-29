@@ -323,6 +323,14 @@ CREATE TABLE IF NOT EXISTS tickets (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS ticket_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+  sender TEXT NOT NULL CHECK (sender IN ('user', 'staff')),
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS app_settings (
   key TEXT PRIMARY KEY,
   value TEXT DEFAULT ''
@@ -388,6 +396,7 @@ ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE schedule_slots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ticket_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
 -- Users
@@ -533,6 +542,18 @@ CREATE POLICY "Users can create own tickets" ON tickets FOR INSERT WITH CHECK (a
 CREATE POLICY "Users can view own tickets" ON tickets FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Admin can view all tickets" ON tickets FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
 CREATE POLICY "Admin can manage tickets" ON tickets FOR UPDATE USING (auth.email() = 'mnartves@gmail.com');
+
+-- Ticket messages (conversación)
+CREATE POLICY "Users can create ticket messages" ON ticket_messages FOR INSERT
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM tickets WHERE tickets.id = ticket_messages.ticket_id AND tickets.user_id = auth.uid()
+  ) OR auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Users can view own ticket messages" ON ticket_messages FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM tickets WHERE tickets.id = ticket_messages.ticket_id AND tickets.user_id = auth.uid()
+  ) OR auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can manage all ticket messages" ON ticket_messages FOR ALL
+  USING (auth.email() = 'mnartves@gmail.com');
 
 -- App Settings
 CREATE POLICY "Everyone can read app settings" ON app_settings FOR SELECT USING (true);

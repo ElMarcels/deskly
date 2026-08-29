@@ -880,8 +880,8 @@ function TicketsTab() {
                   {STATUS[selected.status]}
                 </button>
                 <button onClick={() => setDeleteTarget(selected)}
-                  className="p-1.5 rounded-lg text-[#e0e0ff]/40 hover:text-red-400 hover:bg-red-500/20 cursor-pointer transition-colors" title="Eliminar ticket">
-                  <Trash2 size={14} />
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer bg-red-500/15 text-red-400 hover:bg-red-500/30 transition-colors flex items-center gap-1" title="Eliminar ticket">
+                  <Trash2 size={12} /> Eliminar
                 </button>
               </div>
             </div>

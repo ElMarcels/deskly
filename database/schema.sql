@@ -483,7 +483,7 @@ CREATE POLICY "Admin can delete rooms" ON study_rooms FOR DELETE USING (auth.ema
 
 -- Study Room Participants
 CREATE POLICY "Room participants are visible" ON study_room_participants FOR SELECT
-  USING (auth.uid() = user_id OR room_id IN (SELECT room_id FROM study_room_participants WHERE user_id = auth.uid()));
+  USING (auth.uid() = user_id);
 CREATE POLICY "Admin can select all participants" ON study_room_participants FOR SELECT
   USING (auth.email() = 'mnartves@gmail.com');
 CREATE POLICY "Users can join rooms" ON study_room_participants FOR INSERT

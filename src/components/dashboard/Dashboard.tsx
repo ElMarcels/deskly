@@ -9,7 +9,6 @@ import TaskList from "@/components/widgets/TaskList";
 import QuickNotes from "@/components/widgets/QuickNotes";
 import StudyAnalytics from "@/components/widgets/StudyAnalytics";
 import GradeCalculator from "@/components/widgets/GradeCalculator";
-import AmbientSounds from "@/components/widgets/AmbientSounds";
 import DailyQuote from "@/components/widgets/DailyQuote";
 import { GripVertical, Eye, EyeOff, Settings, X, ArrowBigUp, ArrowBigDown } from "lucide-react";
 import NeonButton from "@/components/ui/NeonButton";
@@ -20,7 +19,6 @@ const WIDGETS: Record<string, { label: string; render: () => React.ReactNode }> 
   notes: { label: "Notas rápidas", render: () => <QuickNotes /> },
   analytics: { label: "Análisis", render: () => <StudyAnalytics /> },
   grades: { label: "Notas académicas", render: () => <GradeCalculator /> },
-  ambient: { label: "Sonidos", render: () => <AmbientSounds /> },
   quote: { label: "Cita diaria", render: () => <DailyQuote /> },
   spotify: { label: "Spotify", render: () => <SpotifyWidget /> },
 };

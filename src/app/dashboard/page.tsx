@@ -7,7 +7,6 @@ import TaskList from "@/components/widgets/TaskList";
 import QuickNotes from "@/components/widgets/QuickNotes";
 import StudyAnalytics from "@/components/widgets/StudyAnalytics";
 import GradeCalculator from "@/components/widgets/GradeCalculator";
-import AmbientSounds from "@/components/widgets/AmbientSounds";
 import DailyQuote from "@/components/widgets/DailyQuote";
 
 export default function DashboardPage() {
@@ -19,7 +18,6 @@ export default function DashboardPage() {
         <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] p-6">
           <div className="flex flex-col lg:flex-row items-center gap-8 max-w-4xl w-full">
             <div className="w-full max-w-md"><PomodoroWidget /></div>
-            <div className="w-full max-w-md"><AmbientSounds /></div>
           </div>
         </div>
       ) : (
@@ -28,7 +26,6 @@ export default function DashboardPage() {
             <div className="lg:col-span-4 space-y-5">
               <PomodoroWidget />
               <DailyQuote />
-              <AmbientSounds />
             </div>
             <div className="lg:col-span-5 space-y-5">
               <TaskList />

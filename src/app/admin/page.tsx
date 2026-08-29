@@ -754,6 +754,8 @@ function TicketsTab() {
   const [list, setList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
+  const [replyTarget, setReplyTarget] = useState<any | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   const STATUS = { open: "Abierto", in_progress: "En curso", resolved: "Resuelto", closed: "Cerrado" } as any;
 
@@ -790,6 +792,23 @@ function TicketsTab() {
     return "open";
   };
 
+  const respond = async () => {
+    if (!replyTarget) return;
+    const { error } = await supabase
+      .from("tickets")
+      .update({ staff_response: replyText.trim(), responded_at: new Date().toISOString() })
+      .eq("id", replyTarget.id);
+    if (error) setMsg("Error: " + error.message);
+    else setList(list.map(t => t.id === replyTarget.id ? { ...t, staff_response: replyText.trim(), responded_at: new Date().toISOString() } : t));
+    setReplyTarget(null);
+    setReplyText("");
+  };
+
+  const openReply = (t: any) => {
+    setReplyTarget(t);
+    setReplyText(t.staff_response || "");
+  };
+
   return (
     <GlassCard className="p-5">
       <div className="flex items-center justify-between mb-4">
@@ -816,11 +835,36 @@ function TicketsTab() {
               <p className="text-[10px] text-[#e0e0ff]/30 mt-2">
                 {t.userName} · {new Date(t.created_at).toLocaleString("es-ES")}
               </p>
+              {t.staff_response && (
+                <div className="mt-3 p-3 rounded-xl bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.2)]">
+                  <p className="text-[10px] font-bold text-[#a855f7] mb-1">Tu respuesta
+                    {t.responded_at && <span className="text-[#e0e0ff]/30 font-normal ml-2">{new Date(t.responded_at).toLocaleString("es-ES")}</span>}
+                  </p>
+                  <p className="text-xs text-[#e0e0ff]/80">{t.staff_response}</p>
+                </div>
+              )}
+              <button onClick={() => openReply(t)}
+                className="mt-3 px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer bg-[rgba(168,85,247,0.15)] text-[#a855f7] hover:bg-[rgba(168,85,247,0.25)] transition-colors">
+                {t.staff_response ? "Editar respuesta" : "Responder"}
+              </button>
             </div>
           ))}
           {list.length === 0 && <p className="text-center text-[#e0e0ff]/30 text-sm py-8">No hay tickets</p>}
         </div>
       )}
+
+      <Modal open={!!replyTarget} onClose={() => { setReplyTarget(null); setReplyText(""); }} title="Responder ticket"
+        footer={
+          <>
+            <NeonButton variant="ghost" onClick={() => { setReplyTarget(null); setReplyText(""); }}>Cancelar</NeonButton>
+            <NeonButton variant="primary" onClick={respond} disabled={!replyText.trim()}>Enviar respuesta</NeonButton>
+          </>
+        }>
+        <p className="text-xs text-[#e0e0ff]/50 mb-3"><span className="font-bold">{replyTarget?.subject}</span></p>
+        <textarea rows={4} value={replyText} onChange={e => setReplyText(e.target.value)}
+          className="w-full bg-[#12122a] border border-[rgba(168,85,247,0.3)] rounded-lg px-3 py-2 text-sm text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/25 resize-none"
+          placeholder="Escribe la respuesta para el usuario..." />
+      </Modal>
     </GlassCard>
   );
 }

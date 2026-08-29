@@ -318,6 +318,8 @@ CREATE TABLE IF NOT EXISTS tickets (
   subject TEXT NOT NULL,
   message TEXT NOT NULL DEFAULT '',
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  staff_response TEXT,
+  responded_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

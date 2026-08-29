@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import AppLayout from "@/components/layout/AppLayout";
-import { User, Trophy, Flame, Clock, Edit3, Save, Target } from "lucide-react";
+import { User, Trophy, Flame, Clock, Edit3, Save, Target, BarChart3, Globe } from "lucide-react";
 import NeonButton from "@/components/ui/NeonButton";
 import { supabase } from "@/lib/supabase/client";
+
+type RangeKey = "day" | "week" | "month";
 
 const BADGES_LIST = [
   { id: "first_pomodoro", name: "Primer Pomodoro", icon: "🍅" },
@@ -36,6 +39,8 @@ export default function ProfilePage() {
   const [longestStreak, setLongestStreak] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [sessionLog, setSessionLog] = useState<{ started_at: string; duration_minutes: number }[]>([]);
+  const [histRange, setHistRange] = useState<RangeKey>("week");
 
   useEffect(() => {
     const load = async () => {
@@ -124,8 +129,66 @@ export default function ProfilePage() {
     setSaving(false);
   };
 
-  const weekData = [0, 0, 0, 0, 0, 0, 0];
-  const maxH = Math.max(...weekData, 1);
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    (async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - 90);
+      const { data } = await supabase
+        .from("study_sessions")
+        .select("started_at, duration_minutes")
+        .gte("started_at", since.toISOString())
+        .order("started_at", { ascending: true });
+      if (active && data) setSessionLog(data);
+    })();
+    return () => { active = false; };
+  }, [userId]);
+
+  const buildHistogram = () => {
+    if (histRange === "day") {
+      const buckets: Record<number, number> = {};
+      sessionLog.forEach(s => {
+        const h = new Date(s.started_at).getHours();
+        buckets[h] = (buckets[h] || 0) + (s.duration_minutes / 60);
+      });
+      const data = Array.from({ length: 24 }, (_, h) => ({ label: `${h}h`, value: buckets[h] || 0 }));
+      const max = Math.max(...data.map(d => d.value), 0.1);
+      return { labels: data.map(d => d.label), values: data.map(d => d.value), max };
+    }
+    if (histRange === "month") {
+      const buckets: Record<number, number> = {};
+      sessionLog.forEach(s => {
+        const d = new Date(s.started_at); d.setDate(1);
+        buckets[d.getTime()] = (buckets[d.getTime()] || 0) + (s.duration_minutes / 60);
+      });
+      const today = new Date();
+      const data: { label: string; value: number }[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        if (!(buckets[d.getTime()] > 0) && i !== 0) { data.push({ label: d.toLocaleDateString("es-ES", { month: "short" }), value: 0 }); continue; }
+        data.push({ label: d.toLocaleDateString("es-ES", { month: "short" }), value: buckets[d.getTime()] || 0 });
+      }
+      const max = Math.max(...data.map(d => d.value), 0.1);
+      return { labels: data.map(d => d.label), values: data.map(d => d.value), max };
+    }
+    const buckets: Record<number, number> = {};
+    sessionLog.forEach(s => {
+      const d = new Date(s.started_at); d.setHours(0, 0, 0, 0);
+      buckets[d.getTime()] = (buckets[d.getTime()] || 0) + (s.duration_minutes / 60);
+    });
+    const today = new Date();
+    const data: { label: string; value: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today); d.setDate(today.getDate() - i); d.setHours(0, 0, 0, 0);
+      data.push({ label: ["L", "M", "X", "J", "V", "S", "D"][d.getDay() === 0 ? 6 : d.getDay() - 1], value: buckets[d.getTime()] || 0 });
+    }
+    const max = Math.max(...data.map(d => d.value), 0.1);
+    return { labels: data.map(d => d.label), values: data.map(d => d.value), max };
+  };
+
+  const hist = buildHistogram();
+  const histTotal = hist.values.reduce((a, b) => a + b, 0);
 
   return (
     <AppLayout>
@@ -185,7 +248,15 @@ export default function ProfilePage() {
                     </NeonButton>
                   </>
                 ) : (
-                  <NeonButton onClick={() => setEditing(true)} variant="secondary" size="sm"><Edit3 size={14} /> Editar</NeonButton>
+                  <>
+                    <NeonButton onClick={() => setEditing(true)} variant="secondary" size="sm"><Edit3 size={14} /> Editar</NeonButton>
+                    {username && (
+                      <Link href={`/user/${encodeURIComponent(username)}`}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#e0e0ff]/60 hover:text-[#a855f7] border border-transparent hover:border-[rgba(168,85,247,0.3)] transition-all">
+                        <Globe size={14} /> Perfil público
+                      </Link>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -225,13 +296,26 @@ export default function ProfilePage() {
           </div>
 
           <div className="glass-card p-5">
-            <h3 className="text-sm font-bold gradient-neon mb-4">Historial Semanal</h3>
-            <div className="flex items-end gap-2 h-32">
-              {weekData.map((hours, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-[#e0e0ff]/40">{hours}h</span>
-                  <div className="w-full rounded-lg bg-gradient-to-t from-[#a855f7] to-[#ec4899] relative" style={{ height: `${Math.max((hours / maxH) * 100, 4)}%`, minHeight: "4px" }} />
-                  <span className="text-[10px] text-[#e0e0ff]/50">{["L", "M", "X", "J", "V", "S", "D"][i]}</span>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold gradient-neon">Historial de Sesiones</h3>
+              <div className="flex gap-1 rounded-lg bg-[#12122a]/60 border border-[rgba(168,85,247,0.15)] p-0.5">
+                {(["day", "week", "month"] as RangeKey[]).map(r => (
+                  <button key={r} onClick={() => setHistRange(r)}
+                    className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all cursor-pointer ${histRange === r ? "bg-[rgba(168,85,247,0.2)] text-[#a855f7]" : "text-[#e0e0ff]/40 hover:text-[#e0e0ff]/70"}`}>
+                    {{ day: "Día", week: "Semana", month: "Mes" }[r]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-[10px] text-[#e0e0ff]/40 mb-3">
+              {histTotal.toFixed(1)}h en este periodo · <BarChart3 size={10} className="inline -mt-0.5 text-[#a855f7]" />
+            </p>
+            <div className="flex items-end gap-1.5 h-32 overflow-x-auto pb-1">
+              {hist.values.map((hours, i) => (
+                <div key={i} className="flex-1 min-w-[14px] flex flex-col items-center gap-1">
+                  <span className="text-[9px] text-[#e0e0ff]/40">{hours > 0 ? `${hours.toFixed(1)}` : ""}</span>
+                  <div className="w-full rounded-lg bg-gradient-to-t from-[#a855f7] to-[#ec4899] relative" style={{ height: `${Math.max((hours / hist.max) * 100, 4)}%`, minHeight: "4px", opacity: hours > 0 ? 1 : 0.2 }} />
+                  <span className="text-[9px] text-[#e0e0ff]/50">{hist.labels[i]}</span>
                 </div>
               ))}
             </div>

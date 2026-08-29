@@ -6,13 +6,30 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
   CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
-  Sun, Moon, LifeBuoy, ScrollText,
+  Sun, Moon, LifeBuoy, ScrollText, Timer,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store/useStore";
 import { ACCENTS } from "@/lib/theme";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
+
+const FOCUS_PLAYLISTS = [
+  {
+    id: "lofi",
+    name: "Lo-Fi Relajante",
+    desc: "Vibes tranquilas para concentrarte",
+    color: "#a855f7",
+    embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator&theme=0",
+  },
+  {
+    id: "academia",
+    name: "Dark Academia",
+    desc: "Clásicos y ambient para estudiar",
+    color: "#ec4899",
+    embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DX8NTLI2TtZa6?utm_source=generator&theme=0",
+  },
+];
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +40,7 @@ const navLinks = [
   { href: "/habits", label: "Habitos", icon: CheckSquare },
   { href: "/notas", label: "Notas", icon: CheckSquare },
   { href: "/reglas", label: "Reglas", icon: ScrollText },
+  { href: "/breaks", label: "Pausas", icon: Timer },
   { href: "/soporte", label: "Soporte", icon: LifeBuoy },
 ];
 
@@ -33,6 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [spotifyOpen, setSpotifyOpen] = useState(true);
+  const [focusPlaylist, setFocusPlaylist] = useState("lofi");
   const [maintenance, setMaintenance] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -144,15 +163,34 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {spotifyOpen ? <ChevronDown size={12} className="text-[#e0e0ff]/30" /> : <ChevronUp size={12} className="text-[#e0e0ff]/30" />}
           </button>
           {spotifyOpen && (
-            <div className="mt-2 rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)] spotify-embed">
-              <iframe
-                src="https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator&theme=0"
-                width="100%" height="352" frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy"
-                className="rounded-xl" title="Spotify Player"
-                style={{ borderRadius: "0.75rem" }}
-              />
+            <div className="mt-2">
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                {FOCUS_PLAYLISTS.map(p => {
+                  const active = focusPlaylist === p.id;
+                  return (
+                    <button key={p.id} onClick={() => setFocusPlaylist(p.id)}
+                      className={`text-left px-2.5 py-2 rounded-xl border transition-all cursor-pointer ${
+                        active
+                          ? `bg-[${p.color}]/15 border-[${p.color}]/50`
+                          : "bg-[#12122a]/50 border-[rgba(168,85,247,0.1)] hover:border-[rgba(168,85,247,0.4)]"
+                      }`}
+                      style={active ? { borderColor: p.color + "80", background: p.color + "22" } : undefined}>
+                      <span className={`block text-[10px] font-bold ${active ? "" : "text-[#e0e0ff]/50"}`} style={active ? { color: p.color } : undefined}>{p.name}</span>
+                      <span className="block text-[9px] text-[#e0e0ff]/40 leading-tight mt-0.5">{p.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)] spotify-embed">
+                <iframe
+                  src={FOCUS_PLAYLISTS.find(p => p.id === focusPlaylist)?.embed}
+                  width="100%" height="352" frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy"
+                  className="rounded-xl" title="Spotify Player"
+                  style={{ borderRadius: "0.75rem" }}
+                />
+              </div>
             </div>
           )}
         </div>

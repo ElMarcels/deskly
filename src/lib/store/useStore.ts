@@ -44,10 +44,9 @@ interface DesklyState {
   removeGrade: (id: string) => void;
   updateGrade: (id: string, updates: Partial<GradeEntry>) => void;
 
-  ambientSound: string | null;
-  ambientVolume: number;
-  setAmbientSound: (sound: string | null) => void;
-  setAmbientVolume: (volume: number) => void;
+  ambientLayers: Record<string, number>;
+  setAmbientLayer: (sound: string | null, volume: number) => void;
+  setAmbientVolumeAll: (volume: number) => void;
 
   currentSubjectFilter: string | null;
   setCurrentSubjectFilter: (id: string | null) => void;
@@ -172,10 +171,25 @@ export const useStore = create<DesklyState>((set, get) => ({
     set({ grades: next });
   },
 
-  ambientSound: null,
-  ambientVolume: 0.3,
-  setAmbientSound: (sound) => set({ ambientSound: sound }),
-  setAmbientVolume: (volume) => set({ ambientVolume: volume }),
+  ambientLayers: loadFromStorage("deskly-ambient-layers", {} as Record<string, number>),
+  setAmbientLayer: (sound, volume) => {
+    const current = get().ambientLayers;
+    const next = { ...current };
+    if (sound === null || volume <= 0) {
+      if (sound) delete next[sound];
+      else Object.keys(next).forEach(k => delete next[k]);
+    } else {
+      next[sound] = volume;
+    }
+    saveToStorage("deskly-ambient-layers", next);
+    set({ ambientLayers: next });
+  },
+  setAmbientVolumeAll: (volume) => {
+    const next: Record<string, number> = {};
+    Object.keys(get().ambientLayers).forEach(k => { next[k] = volume; });
+    saveToStorage("deskly-ambient-layers", next);
+    set({ ambientLayers: next });
+  },
 
   currentSubjectFilter: null,
   setCurrentSubjectFilter: (id) => set({ currentSubjectFilter: id }),

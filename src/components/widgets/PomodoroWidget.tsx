@@ -7,6 +7,7 @@ import NeonButton from "@/components/ui/NeonButton";
 import { useStore } from "@/lib/store/useStore";
 import { useState } from "react";
 import type { PomodoroMode } from "@/types";
+import { supabase } from "@/lib/supabase/client";
 
 const MODES: Record<PomodoroMode, { label: string; icon: typeof BookOpen; color: string }> = {
   study: { label: "Estudio", icon: BookOpen, color: "#a855f7" },
@@ -78,6 +79,19 @@ export default function PomodoroWidget() {
       }
       if (pomodoroMode === "study") {
         incrementSessions();
+        (async () => {
+          const { data: u } = await supabase.auth.getUser();
+          const uid = u.user?.id;
+          if (!uid) return;
+          const duration = pomodoroSettings.studyDuration;
+          await supabase.from("study_sessions").insert({
+            user_id: uid,
+            started_at: new Date(Date.now() - duration * 60000).toISOString(),
+            ended_at: new Date().toISOString(),
+            duration_minutes: duration,
+            completed: true,
+          });
+        })();
         const completedSessions = useStore.getState().sessionsToday;
         if (completedSessions % pomodoroSettings.sessionsBeforeLongBreak === 0) {
           switchMode("long_break");

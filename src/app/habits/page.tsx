@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { CheckSquare, Plus, Flame, TrendingUp, Trash2, X } from "lucide-react";
+import { CheckSquare, Plus, Flame, TrendingUp, Trash2, X, Bell, BellRing } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
+import { ensurePermission, scheduleLocalNotification, cancelLocalNotification } from "@/lib/notifications";
 
 interface Habit { id: string; name: string; icon: string; color: string; logs: Record<string, boolean>; }
 
@@ -42,7 +43,26 @@ export default function HabitsPage() {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState("");
   const [newIcon, setNewIcon] = useState("✓");
+  const [reminderOn, setReminderOn] = useState(false);
+  const [reminderTime, setReminderTime] = useState("20:00");
   const days = getDaysArray();
+
+  useEffect(() => {
+    try { setReminderOn(localStorage.getItem("deskly-habit-reminder-on") === "true"); } catch {}
+    try { const t = localStorage.getItem("deskly-habit-reminder-time"); if (t) setReminderTime(t); } catch {}
+  }, []);
+
+  useEffect(() => {
+    cancelLocalNotification("habit-daily");
+    if (!reminderOn) return;
+    if (typeof Notification !== "undefined" && Notification.permission === "default") ensurePermission();
+    const [h, m] = reminderTime.split(":").map(Number);
+    const now = new Date();
+    const target = new Date(now);
+    target.setHours(h, m, 0, 0);
+    if (target.getTime() <= now.getTime()) target.setDate(target.getDate() + 1);
+    scheduleLocalNotification("habit-daily", "Deskly · Hábitos", `Revisa tus hábitos de hoy y marca tu progreso.`, target);
+  }, [reminderOn, reminderTime]);
 
   useEffect(() => {
     try { const s = localStorage.getItem(HABIT_STORAGE); setHabits(s ? JSON.parse(s) : DEFAULT_HABITS); } catch { setHabits(DEFAULT_HABITS); }
@@ -80,6 +100,24 @@ export default function HabitsPage() {
           </div>
           <NeonButton onClick={() => setShowForm(true)} variant="primary" size="sm"><Plus size={14} /> Nuevo</NeonButton>
         </div>
+
+        <GlassCard className="p-4 flex items-center gap-3">
+          {reminderOn ? <BellRing size={18} className="text-[#a855f7]" /> : <Bell size={18} className="text-[#e0e0ff]/30" />}
+          <div className="flex-1">
+            <p className="text-xs font-bold text-[#e0e0ff]/80">Recordatorio diario de hábitos</p>
+            <p className="text-[10px] text-[#e0e0ff]/40">Se te notificará cada día a la hora elegida (mientras la app esté abierta).</p>
+          </div>
+          <input type="time" value={reminderTime} onChange={e => { setReminderTime(e.target.value); localStorage.setItem("deskly-habit-reminder-time", e.target.value); }}
+            className="bg-[#12122a] border border-[rgba(168,85,247,0.2)] rounded-lg px-2 py-1.5 text-sm text-[#e0e0ff] outline-none focus:border-[#a855f7]" />
+          <button onClick={() => {
+            const next = !reminderOn;
+            setReminderOn(next);
+            localStorage.setItem("deskly-habit-reminder-on", String(next));
+          }}
+            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${reminderOn ? "bg-[#a855f7]" : "bg-[#1a1a3e] border border-[rgba(168,85,247,0.2)]"}`}>
+            <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform ${reminderOn ? "translate-x-5" : "translate-x-0.5"}`} />
+          </button>
+        </GlassCard>
 
         <div className="grid grid-cols-3 gap-3">
           <GlassCard className="p-4 text-center">

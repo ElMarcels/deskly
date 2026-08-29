@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import ThemeController from "@/components/ui/ThemeController";
 import "./globals.css";
 
 const inter = Inter({
@@ -20,7 +21,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-[#0a0a1a] text-[#e0e0ff] font-[family-name:var(--font-inter)]">
+      <body className="min-h-full flex flex-col bg-[#0a0a1a] text-[#e0e0ff] font-[family-name:var(--font-inter)]" style={{ background: "var(--bg)", color: "var(--text)" }}>
+        <ThemeController />
         {children}
       </body>
     </html>

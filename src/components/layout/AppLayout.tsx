@@ -6,8 +6,11 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
   CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
+  Sun, Moon, LifeBuoy,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
+import { useStore } from "@/lib/store/useStore";
+import { ACCENTS } from "@/lib/theme";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
 
@@ -18,6 +21,8 @@ const navLinks = [
   { href: "/rooms", label: "Salas", icon: Radio },
   { href: "/messages", label: "Mensajes", icon: MessageCircle },
   { href: "/habits", label: "Habitos", icon: CheckSquare },
+  { href: "/notas", label: "Notas", icon: CheckSquare },
+  { href: "/soporte", label: "Soporte", icon: LifeBuoy },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -30,6 +35,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [maintenance, setMaintenance] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const theme = useStore((s) => s.theme);
+  const toggleTheme = useStore((s) => s.toggleTheme);
+  const accent = useStore((s) => s.accent);
+  const setAccent = useStore((s) => s.setAccent);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -83,7 +92,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a1a] text-[#e0e0ff]">
+    <div className="min-h-screen text-[#e0e0ff]" style={{ background: "var(--bg)", color: "var(--text)" }}>
       <button onClick={() => setSidebarOpen(!sidebarOpen)}
         className="fixed top-4 left-4 z-50 rounded-lg bg-[#12122a]/80 p-2 text-[#e0e0ff]/60 backdrop-blur-md border border-[rgba(168,85,247,0.2)] lg:hidden hover:text-[#a855f7] transition-colors cursor-pointer">
         {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
@@ -144,6 +153,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              {ACCENTS.slice(0, 7).map(a => (
+                <button key={a.name} onClick={() => setAccent(a)} title={a.name}
+                  className={`w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110 ${accent.name === a.name ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[#12122a]" : ""}`}
+                  style={{ background: a.color }} />
+              ))}
+            </div>
+            <button onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
+              className="p-2 rounded-lg hover:bg-[#1a1a3e] text-[#e0e0ff]/60 hover:text-[#e0e0ff] cursor-pointer transition-colors">
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a1a3e]/60 border border-[rgba(168,85,247,0.2)]">
               <User size={18} className="text-[#e0e0ff]/40" />

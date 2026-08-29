@@ -2,6 +2,28 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --bg: #0a0a1a;
+  --surface: rgba(18, 18, 42, 0.6);
+  --surface-solid: #12122a;
+  --surface-light: #1a1a3e;
+  --text: #e0e0ff;
+  --text-dim: rgba(224, 224, 255, 0.5);
+  --border: rgba(168, 85, 247, 0.2);
+  --accent: #a855f7;
+  --accent-rgb: 168, 85, 247;
+}
+
+[data-theme="light"] {
+  --bg: #f4f4fb;
+  --surface: rgba(255, 255, 255, 0.75);
+  --surface-solid: #ffffff;
+  --surface-light: #eeeeff;
+  --text: #1a1a2e;
+  --text-dim: rgba(26, 26, 46, 0.55);
+  --border: rgba(120, 80, 220, 0.25);
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(168, 85, 247, 0.3) transparent;
@@ -21,45 +43,45 @@
 }
 
 body {
-  background: #0a0a1a;
-  color: #e0e0ff;
+  background: var(--bg);
+  color: var(--text);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
   min-height: 100vh;
 }
 
 .glass-card {
-  background: rgba(18, 18, 42, 0.6);
+  background: var(--surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(168, 85, 247, 0.2);
+  border: 1px solid var(--border);
   border-radius: 16px;
   transition: all 0.3s ease;
 }
 
 .glass-card:hover {
-  border-color: rgba(168, 85, 247, 0.5);
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
+  border-color: rgba(var(--accent-rgb), 0.5);
+  box-shadow: 0 0 20px rgba(var(--accent-rgb), 0.15);
 }
 
 .neon-glow {
   box-shadow:
-    0 0 5px rgba(168, 85, 247, 0.3),
-    0 0 20px rgba(168, 85, 247, 0.1),
-    0 0 40px rgba(168, 85, 247, 0.05);
+    0 0 5px rgba(var(--accent-rgb), 0.3),
+    0 0 20px rgba(var(--accent-rgb), 0.1),
+    0 0 40px rgba(var(--accent-rgb), 0.05);
 }
 
 .neon-glow-strong {
   box-shadow:
-    0 0 5px rgba(168, 85, 247, 0.5),
-    0 0 20px rgba(168, 85, 247, 0.3),
-    0 0 40px rgba(168, 85, 247, 0.15),
-    0 0 80px rgba(168, 85, 247, 0.05);
+    0 0 5px rgba(var(--accent-rgb), 0.5),
+    0 0 20px rgba(var(--accent-rgb), 0.3),
+    0 0 40px rgba(var(--accent-rgb), 0.15),
+    0 0 80px rgba(var(--accent-rgb), 0.05);
 }
 
 .neon-text {
   text-shadow:
-    0 0 7px rgba(168, 85, 247, 0.6),
-    0 0 20px rgba(168, 85, 247, 0.3);
+    0 0 7px rgba(var(--accent-rgb), 0.6),
+    0 0 20px rgba(var(--accent-rgb), 0.3);
 }
 
 .gradient-neon {

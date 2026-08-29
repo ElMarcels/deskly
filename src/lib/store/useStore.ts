@@ -1,7 +1,26 @@
 import { create } from "zustand";
 import type { PomodoroMode, PomodoroSettings, GradeEntry, Task } from "@/types";
 
+export type Theme = "dark" | "light";
+export interface Accent {
+  name: string;
+  color: string;
+}
+
 interface DesklyState {
+  theme: Theme;
+  setTheme: (t: Theme) => void;
+  toggleTheme: () => void;
+  accent: Accent;
+  setAccent: (a: Accent) => void;
+
+  widgetLayout: string[];
+  setWidgetLayout: (order: string[]) => void;
+  widgetVisible: Record<string, boolean>;
+  setWidgetVisible: (id: string, visible: boolean) => void;
+  widgetSize: Record<string, "normal" | "large">;
+  setWidgetSize: (id: string, size: "normal" | "large") => void;
+
   zenMode: boolean;
   toggleZenMode: () => void;
 
@@ -52,6 +71,42 @@ const saveToStorage = (key: string, value: unknown) => {
 };
 
 export const useStore = create<DesklyState>((set, get) => ({
+  theme: loadFromStorage("deskly-theme", "dark" as Theme),
+  setTheme: (t) => {
+    saveToStorage("deskly-theme", t);
+    set({ theme: t });
+  },
+  toggleTheme: () => {
+    const next: Theme = get().theme === "dark" ? "light" : "dark";
+    saveToStorage("deskly-theme", next);
+    set({ theme: next });
+  },
+  accent: loadFromStorage("deskly-accent", { name: "Violeta", color: "#a855f7" } as Accent),
+  setAccent: (a) => {
+    saveToStorage("deskly-accent", a);
+    set({ accent: a });
+  },
+
+  widgetLayout: loadFromStorage("deskly-widget-layout", ["pomodoro", "tasks", "notes", "analytics", "grades", "ambient", "quote", "spotify"]),
+  setWidgetLayout: (order) => {
+    saveToStorage("deskly-widget-layout", order);
+    set({ widgetLayout: order });
+  },
+  widgetVisible: loadFromStorage("deskly-widget-visible", {
+    pomodoro: true, tasks: true, notes: true, analytics: true, grades: true, ambient: true, quote: true, spotify: true,
+  }),
+  setWidgetVisible: (id, visible) => {
+    const next = { ...get().widgetVisible, [id]: visible };
+    saveToStorage("deskly-widget-visible", next);
+    set({ widgetVisible: next });
+  },
+  widgetSize: loadFromStorage("deskly-widget-size", {}),
+  setWidgetSize: (id, size) => {
+    const next = { ...get().widgetSize, [id]: size };
+    saveToStorage("deskly-widget-size", next);
+    set({ widgetSize: next });
+  },
+
   zenMode: loadFromStorage("deskly-zen-mode", false),
   toggleZenMode: () => {
     const next = !get().zenMode;

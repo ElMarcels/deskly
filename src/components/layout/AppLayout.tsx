@@ -39,6 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const toggleTheme = useStore((s) => s.toggleTheme);
   const accent = useStore((s) => s.accent);
   const setAccent = useStore((s) => s.setAccent);
+  const zenMode = useStore((s) => s.zenMode);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -93,14 +94,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen text-[#e0e0ff]" style={{ background: "var(--bg)", color: "var(--text)" }}>
-      <button onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="fixed top-4 left-4 z-50 rounded-lg bg-[#12122a]/80 p-2 text-[#e0e0ff]/60 backdrop-blur-md border border-[rgba(168,85,247,0.2)] lg:hidden hover:text-[#a855f7] transition-colors cursor-pointer">
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {!zenMode && (
+        <button onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="fixed top-4 left-4 z-50 rounded-lg bg-[#12122a]/80 p-2 text-[#e0e0ff]/60 backdrop-blur-md border border-[rgba(168,85,247,0.2)] lg:hidden hover:text-[#a855f7] transition-colors cursor-pointer">
+          {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        </button>
+      )}
 
-      {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {!zenMode && sidebarOpen && <div className="fixed inset-0 z-30 bg-black/60 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`fixed left-0 top-0 z-40 flex h-full w-64 flex-col bg-[#12122a]/70 border-r border-[rgba(168,85,247,0.15)] backdrop-blur-xl transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
+      {!zenMode && (
+        <aside className={`fixed left-0 top-0 z-40 flex h-full w-64 flex-col bg-[#12122a]/70 border-r border-[rgba(168,85,247,0.15)] backdrop-blur-xl transition-transform duration-300 ease-in-out ${sidebarOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
         <div className="flex items-center gap-3 border-b border-[rgba(168,85,247,0.15)] px-6 py-5">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[rgba(168,85,247,0.2)] border border-[rgba(168,85,247,0.3)] shadow-[0_0_12px_rgba(168,85,247,0.25)]">
             <Zap size={20} className="text-[#a855f7]" />
@@ -180,8 +184,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
+      )}
 
-      <main className="lg:ml-64 min-h-screen p-6 lg:p-8">
+      <main className={`min-h-screen p-6 lg:p-8 ${zenMode ? "" : "lg:ml-64"}`}>
         {announcements.filter(a => !dismissed.includes(a.id)).map(a => (
           <div key={a.id} className="mb-4 flex items-start gap-3 p-3 rounded-xl bg-[rgba(168,85,247,0.12)] border border-[rgba(168,85,247,0.25)] animate-slide-up">
             <Megaphone size={16} className="text-[#a855f7] mt-0.5 shrink-0" />

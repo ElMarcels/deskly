@@ -759,8 +759,10 @@ function TicketsTab() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState<"activos" | "resueltos">("activos");
 
   const STATUS = { open: "Abierto", in_progress: "En curso", resolved: "Resuelto", closed: "Cerrado" } as any;
+  const isDone = (s: string) => s === "resolved" || s === "closed";
 
   useEffect(() => {
     (async () => {
@@ -816,6 +818,7 @@ function TicketsTab() {
     else {
       setList(list.map(t => t.id === id ? { ...t, status } : t));
       if (selected && selected.id === id) setSelected({ ...selected, status });
+      if (isDone(status)) setActiveTab("resueltos");
     }
   };
 
@@ -841,14 +844,24 @@ function TicketsTab() {
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       <GlassCard className="lg:col-span-2 p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-[#e0e0ff]">Tickets ({list.length})</h3>
-          <span className="text-[10px] text-[#e0e0ff]/40">{list.filter(t => t.status === "open").length} abiertos</span>
+          <h3 className="text-sm font-bold text-[#e0e0ff]">Tickets</h3>
+          <span className="text-[10px] text-[#e0e0ff]/40">{list.filter(t => !isDone(t.status)).length} activos</span>
+        </div>
+        <div className="flex gap-1 mb-3 flex-wrap">
+          <button onClick={() => { setActiveTab("activos"); if (selected && isDone(selected.status)) setSelected(null); }}
+            className={`flex-1 px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${activeTab === "activos" ? "bg-[rgba(168,85,247,0.2)] text-[#a855f7]" : "bg-[#1a1a3e] text-[#e0e0ff]/50 hover:text-[#e0e0ff]"}`}>
+            Activos ({list.filter(t => !isDone(t.status)).length})
+          </button>
+          <button onClick={() => { setActiveTab("resueltos"); if (selected && !isDone(selected.status)) setSelected(null); }}
+            className={`flex-1 px-2 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${activeTab === "resueltos" ? "bg-[rgba(34,197,94,0.2)] text-green-400" : "bg-[#1a1a3e] text-[#e0e0ff]/50 hover:text-[#e0e0ff]"}`}>
+            Resueltos ({list.filter(t => isDone(t.status)).length})
+          </button>
         </div>
         {loading ? (
           <p className="text-center py-8 text-[#e0e0ff]/40 text-sm">Cargando...</p>
         ) : (
-          <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
-            {list.map(t => (
+          <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1">
+            {list.filter(t => activeTab === "resueltos" ? isDone(t.status) : !isDone(t.status)).map(t => (
               <button key={t.id} onClick={() => loadMessages(t)}
                 className={`w-full text-left p-3 rounded-lg cursor-pointer transition-colors ${selected?.id === t.id ? "bg-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)]" : "border border-transparent hover:bg-[#1a1a3e]"}`}>
                 <div className="flex items-center justify-between mb-1">
@@ -858,7 +871,9 @@ function TicketsTab() {
                 <p className="text-[10px] text-[#e0e0ff]/40">{t.userName}</p>
               </button>
             ))}
-            {list.length === 0 && <p className="text-center text-[#e0e0ff]/30 text-sm py-8">No hay tickets</p>}
+            {list.filter(t => activeTab === "resueltos" ? isDone(t.status) : !isDone(t.status)).length === 0 && (
+              <p className="text-center text-[#e0e0ff]/30 text-sm py-8">{activeTab === "resueltos" ? "No hay tickets resueltos" : "No hay tickets activos"}</p>
+            )}
           </div>
         )}
       </GlassCard>
@@ -868,17 +883,26 @@ function TicketsTab() {
           <>
             <div className="flex items-center justify-between mb-3 pb-3 border-b border-[rgba(168,85,247,0.1)]">
               <p className="text-sm font-bold text-[#e0e0ff]">{selected.subject}</p>
-              <div className="flex items-center gap-2">
-                {selected.status !== "closed" && (
-                  <button onClick={() => setStatus(selected.id, "closed")}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer bg-[#1a1a3e] text-[#e0e0ff]/70 hover:text-[#e0e0ff] transition-colors">
-                    Cerrar
-                  </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {!isDone(selected.status) && (
+                  <>
+                    {selected.status !== "closed" && (
+                      <button onClick={() => setStatus(selected.id, "closed")}
+                        className="px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer bg-[#1a1a3e] text-[#e0e0ff]/70 hover:text-[#e0e0ff] transition-colors">
+                        Cerrar
+                      </button>
+                    )}
+                    <button onClick={() => setStatus(selected.id, nextStatus(selected.status))}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${selected.status === "open" ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30"}`}>
+                      {STATUS[selected.status]}
+                    </button>
+                  </>
                 )}
-                <button onClick={() => setStatus(selected.id, nextStatus(selected.status))}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${selected.status === "open" ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : selected.status === "in_progress" ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30" : selected.status === "resolved" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#e0e0ff]"}`}>
-                  {STATUS[selected.status]}
-                </button>
+                {isDone(selected.status) && (
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold ${selected.status === "resolved" ? "bg-green-500/20 text-green-400" : "bg-[#1a1a3e] text-[#e0e0ff]/40"}`}>
+                    {STATUS[selected.status]}
+                  </span>
+                )}
                 <button onClick={() => setDeleteTarget(selected)}
                   className="px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer bg-red-500/15 text-red-400 hover:bg-red-500/30 transition-colors flex items-center gap-1" title="Eliminar ticket">
                   <Trash2 size={12} /> Eliminar
@@ -905,11 +929,17 @@ function TicketsTab() {
 
             {msg && <div className="mb-2 p-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-[11px]">{msg}</div>}
 
-            <form onSubmit={send} className="flex gap-2">
-              <input value={text} onChange={e => setText(e.target.value)} placeholder="Escribe al usuario..."
-                className="flex-1 bg-[#12122a] border border-[rgba(168,85,247,0.2)] rounded-xl px-3 py-2 text-xs text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/20" />
-              <NeonButton type="submit" variant="primary" size="sm" disabled={sending || !text.trim()}><Send size={14} /></NeonButton>
-            </form>
+            {isDone(selected.status) ? (
+              <p className="text-center text-xs text-[#e0e0ff]/30 py-3 border-t border-[rgba(168,85,247,0.1)]">
+                Este ticket está {selected.status === "resolved" ? "resuelto" : "cerrado"} — no se pueden enviar nuevos mensajes.
+              </p>
+            ) : (
+              <form onSubmit={send} className="flex gap-2">
+                <input value={text} onChange={e => setText(e.target.value)} placeholder="Escribe al usuario..."
+                  className="flex-1 bg-[#12122a] border border-[rgba(168,85,247,0.2)] rounded-xl px-3 py-2 text-xs text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/20" />
+                <NeonButton type="submit" variant="primary" size="sm" disabled={sending || !text.trim()}><Send size={14} /></NeonButton>
+              </form>
+            )}
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">

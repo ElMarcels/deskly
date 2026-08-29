@@ -180,15 +180,17 @@ export default function SoportePage() {
                   })}
                 </div>
 
-                {selected.status !== "closed" && (
+                {selected.status !== "resolved" && selected.status !== "closed" && (
                   <form onSubmit={send} className="flex gap-2">
                     <input value={text} onChange={e => setText(e.target.value)} placeholder="Escribe un mensaje..."
                       className="flex-1 bg-[#12122a] border border-[rgba(168,85,247,0.2)] rounded-xl px-3 py-2 text-xs text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/20" />
                     <NeonButton type="submit" variant="primary" size="sm" disabled={sending || !text.trim()}><Send size={14} /></NeonButton>
                   </form>
                 )}
-                {selected.status === "closed" && (
-                  <p className="text-center text-xs text-[#e0e0ff]/30 py-3">Este ticket está cerrado.</p>
+                {(selected.status === "resolved" || selected.status === "closed") && (
+                  <p className="text-center text-xs text-[#e0e0ff]/30 py-3">
+                    Este ticket está {selected.status === "resolved" ? "resuelto" : "cerrado"}.
+                  </p>
                 )}
               </>
             ) : (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Note, Plus, Trash2, Search, Save, Eye, BookOpen, Tag, Palette } from "lucide-react";
+import { Plus, Trash2, Search, Save, Eye, BookOpen, Tag, Palette, FileText } from "lucide-react";
 import AppLayout from "@/components/layout/AppLayout";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
@@ -173,7 +173,7 @@ export default function NotasPage() {
               </GlassCard>
             ) : (
               <GlassCard className="p-16 text-center">
-                <Note size={40} className="mx-auto mb-3 text-[#e0e0ff]/20" />
+                <FileText size={40} className="mx-auto mb-3 text-[#e0e0ff]/20" />
                 <p className="text-sm text-[#e0e0ff]/40">Selecciona una nota o crea una nueva</p>
               </GlassCard>
             )}

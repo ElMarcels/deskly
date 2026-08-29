@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
   CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
-  Sun, Moon, LifeBuoy,
+  Sun, Moon, LifeBuoy, ScrollText,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store/useStore";
@@ -22,6 +22,7 @@ const navLinks = [
   { href: "/messages", label: "Mensajes", icon: MessageCircle },
   { href: "/habits", label: "Habitos", icon: CheckSquare },
   { href: "/notas", label: "Notas", icon: CheckSquare },
+  { href: "/reglas", label: "Reglas", icon: ScrollText },
   { href: "/soporte", label: "Soporte", icon: LifeBuoy },
 ];
 

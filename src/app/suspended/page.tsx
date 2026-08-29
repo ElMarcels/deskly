@@ -83,11 +83,21 @@ export default function SuspendedPage() {
           </div>
         )}
 
-        {until && (
+        {until ? (
           <div className="mb-5 p-3 rounded-xl bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.2)]">
             <p className="text-xs text-[#e0e0ff]/50">
               Tu acceso se restaurará automáticamente el{" "}
               <span className="font-bold text-[#a855f7]">{new Date(until).toLocaleString("es-ES")}</span>.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-5 p-3 rounded-xl bg-red-500/10 border border-red-500/30">
+            <p className="text-xs text-red-300 font-bold">
+              Tu suspensión es <span className="uppercase">indefinida</span>.
+            </p>
+            <p className="text-xs text-[#e0e0ff]/50 mt-1">
+              No hay una fecha de restauración programada. Tu cuenta permanecerá bloqueada
+              hasta que el equipo de Deskly decida levantarla.
             </p>
           </div>
         )}

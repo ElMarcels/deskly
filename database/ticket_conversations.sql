@@ -42,5 +42,11 @@ CREATE POLICY "Admin can manage all ticket messages" ON public.ticket_messages
   FOR ALL
   USING (auth.email() = 'mnartves@gmail.com');
 
+-- Permitir al admin eliminar tickets (borra también sus mensajes por CASCADE)
+DROP POLICY IF EXISTS "Admin can delete tickets" ON public.tickets;
+CREATE POLICY "Admin can delete tickets" ON public.tickets
+  FOR DELETE
+  USING (auth.email() = 'mnartves@gmail.com');
+
 -- Recarga la caché de esquema para que PostgREST vea la tabla nueva
 NOTIFY pgrst, 'reload schema';

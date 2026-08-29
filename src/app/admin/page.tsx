@@ -758,6 +758,7 @@ function TicketsTab() {
   const [messages, setMessages] = useState<any[]>([]);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 
   const STATUS = { open: "Abierto", in_progress: "En curso", resolved: "Resuelto", closed: "Cerrado" } as any;
 
@@ -825,6 +826,17 @@ function TicketsTab() {
     return "open";
   };
 
+  const doDelete = async () => {
+    if (!deleteTarget) return;
+    const { error } = await supabase.from("tickets").delete().eq("id", deleteTarget.id);
+    if (error) setMsg("Error: " + error.message);
+    else {
+      setList(list.filter(t => t.id !== deleteTarget.id));
+      if (selected && selected.id === deleteTarget.id) setSelected(null);
+    }
+    setDeleteTarget(null);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
       <GlassCard className="lg:col-span-2 p-4">
@@ -856,10 +868,22 @@ function TicketsTab() {
           <>
             <div className="flex items-center justify-between mb-3 pb-3 border-b border-[rgba(168,85,247,0.1)]">
               <p className="text-sm font-bold text-[#e0e0ff]">{selected.subject}</p>
-              <button onClick={() => setStatus(selected.id, nextStatus(selected.status))}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${selected.status === "open" ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : selected.status === "in_progress" ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30" : selected.status === "resolved" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#e0e0ff]"}`}>
-                {STATUS[selected.status]} · cambiar
-              </button>
+              <div className="flex items-center gap-2">
+                {selected.status !== "closed" && (
+                  <button onClick={() => setStatus(selected.id, "closed")}
+                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer bg-[#1a1a3e] text-[#e0e0ff]/70 hover:text-[#e0e0ff] transition-colors">
+                    Cerrar
+                  </button>
+                )}
+                <button onClick={() => setStatus(selected.id, nextStatus(selected.status))}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${selected.status === "open" ? "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30" : selected.status === "in_progress" ? "bg-blue-500/20 text-blue-300 hover:bg-blue-500/30" : selected.status === "resolved" ? "bg-green-500/20 text-green-400 hover:bg-green-500/30" : "bg-[#1a1a3e] text-[#e0e0ff]/40 hover:text-[#e0e0ff]"}`}>
+                  {STATUS[selected.status]}
+                </button>
+                <button onClick={() => setDeleteTarget(selected)}
+                  className="p-1.5 rounded-lg text-[#e0e0ff]/40 hover:text-red-400 hover:bg-red-500/20 cursor-pointer transition-colors" title="Eliminar ticket">
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 min-h-[48vh] max-h-[60vh] overflow-y-auto space-y-3 pr-1 mb-3">
@@ -893,6 +917,15 @@ function TicketsTab() {
           </div>
         )}
       </GlassCard>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={doDelete}
+        title="Eliminar ticket"
+        message={`¿Eliminar el ticket "${deleteTarget?.subject || ""}" y toda su conversación? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+      />
     </div>
   );
 }

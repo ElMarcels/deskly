@@ -538,6 +538,7 @@ CREATE POLICY "Users can create own tickets" ON tickets FOR INSERT WITH CHECK (a
 CREATE POLICY "Users can view own tickets" ON tickets FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Admin can view all tickets" ON tickets FOR SELECT USING (auth.email() = 'mnartves@gmail.com');
 CREATE POLICY "Admin can manage tickets" ON tickets FOR UPDATE USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can delete tickets" ON tickets FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 -- Ticket messages (conversación)
 CREATE POLICY "Users can create ticket messages" ON ticket_messages FOR INSERT

@@ -133,6 +133,8 @@ CREATE POLICY "Admin can view all tickets" ON tickets FOR SELECT
   USING (auth.email() = 'mnartves@gmail.com');
 CREATE POLICY "Admin can manage tickets" ON tickets FOR UPDATE
   USING (auth.email() = 'mnartves@gmail.com');
+CREATE POLICY "Admin can delete tickets" ON tickets FOR DELETE
+  USING (auth.email() = 'mnartves@gmail.com');
 
 -- ticket_messages: usuario inserta/ve mensajes de sus tickets, admin de todos
 CREATE POLICY "Users can create ticket messages" ON ticket_messages FOR INSERT

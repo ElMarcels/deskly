@@ -490,7 +490,9 @@ CREATE POLICY "Admin can select all rooms" ON study_rooms FOR SELECT USING (auth
 CREATE POLICY "Admin can delete rooms" ON study_rooms FOR DELETE USING (auth.email() = 'mnartves@gmail.com');
 
 CREATE POLICY "Room participants are visible" ON study_room_participants FOR SELECT
-  USING (EXISTS (SELECT 1 FROM study_room_participants srp WHERE srp.room_id = study_room_participants.room_id AND srp.user_id = auth.uid()));
+  USING (auth.uid() = user_id OR room_id IN (SELECT room_id FROM study_room_participants WHERE user_id = auth.uid()));
+CREATE POLICY "Admin can select all participants" ON study_room_participants FOR SELECT
+  USING (auth.email() = 'mnartves@gmail.com');
 CREATE POLICY "Users can join rooms" ON study_room_participants FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can leave rooms" ON study_room_participants FOR DELETE

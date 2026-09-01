@@ -9,11 +9,7 @@ import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
 import { useStore } from "@/lib/store/useStore";
 import { ACCENTS, PRESETS } from "@/lib/theme";
-
-const FOCUS_PLAYLISTS = [
-  { id: "lofi", name: "Lo-Fi Relajante", color: "#a855f7" },
-  { id: "academia", name: "Dark Academia", color: "#ec4899" },
-];
+import { FOCUS_PLAYLISTS, loadFocusPlaylist, saveFocusPlaylist } from "@/lib/spotify";
 
 const WIDGET_LABELS: Record<string, string> = {
   pomodoro: "Pomodoro",
@@ -64,14 +60,11 @@ export default function AjustesPage() {
   const setWidgetVisible = useStore((s) => s.setWidgetVisible);
   const widgetLayout = useStore((s) => s.widgetLayout);
 
-  const [focusPlaylist, setFocusPlaylist] = useState<string>(() => {
-    if (typeof window === "undefined") return "lofi";
-    return localStorage.getItem("deskly-focus-playlist") || "lofi";
-  });
+  const [focusPlaylist, setFocusPlaylist] = useState<string>(() => loadFocusPlaylist());
 
   const selectPlaylist = (id: string) => {
     setFocusPlaylist(id);
-    try { localStorage.setItem("deskly-focus-playlist", id); } catch {}
+    saveFocusPlaylist(id);
   };
 
   return (

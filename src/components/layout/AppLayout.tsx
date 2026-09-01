@@ -10,25 +10,10 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store/useStore";
+import SpotifyEmbed from "@/components/ui/SpotifyEmbed";
+import { FOCUS_PLAYLISTS, getFocusPlaylist, loadFocusPlaylist, saveFocusPlaylist } from "@/lib/spotify";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
-
-const FOCUS_PLAYLISTS = [
-  {
-    id: "lofi",
-    name: "Lo-Fi Relajante",
-    desc: "Vibes tranquilas para concentrarte",
-    color: "#a855f7",
-    embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DWYoYGBbGKurt?utm_source=generator&theme=0",
-  },
-  {
-    id: "academia",
-    name: "Dark Academia",
-    desc: "Clásicos y ambient para estudiar",
-    color: "#ec4899",
-    embed: "https://open.spotify.com/embed/playlist/37i9dQZF1DX8NTLI2TtZa6?utm_source=generator&theme=0",
-  },
-];
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -52,7 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [spotifyOpen, setSpotifyOpen] = useState(true);
-  const [focusPlaylist, setFocusPlaylist] = useState("lofi");
+  const [focusPlaylist, setFocusPlaylist] = useState<string>(() => loadFocusPlaylist());
   const [maintenance, setMaintenance] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -165,7 +150,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 {FOCUS_PLAYLISTS.map(p => {
                   const active = focusPlaylist === p.id;
                   return (
-                    <button key={p.id} onClick={() => setFocusPlaylist(p.id)}
+                    <button key={p.id} onClick={() => { setFocusPlaylist(p.id); saveFocusPlaylist(p.id); }}
                       className={`text-left px-2.5 py-2 rounded-xl border transition-all cursor-pointer ${
                         active
                           ? `bg-[${p.color}]/15 border-[${p.color}]/50`
@@ -179,14 +164,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 })}
               </div>
               <div className="rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)] spotify-embed">
-                <iframe
-                  src={FOCUS_PLAYLISTS.find(p => p.id === focusPlaylist)?.embed}
-                  width="100%" height="352" frameBorder="0"
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                  loading="lazy"
-                  className="rounded-xl" title="Spotify Player"
-                  style={{ borderRadius: "0.75rem" }}
-                />
+                <SpotifyEmbed playlistUrl={getFocusPlaylist(focusPlaylist).embed} height={352} title="Focus Music" />
               </div>
             </div>
           )}

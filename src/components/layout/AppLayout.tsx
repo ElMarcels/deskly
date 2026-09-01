@@ -6,11 +6,10 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
   CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
-  Sun, Moon, LifeBuoy, ScrollText, Timer, Layers, Calculator, Palette,
+  LifeBuoy, ScrollText, Timer, Layers, Calculator, Settings2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store/useStore";
-import { ACCENTS, PRESETS } from "@/lib/theme";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
 
@@ -57,12 +56,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [maintenance, setMaintenance] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const theme = useStore((s) => s.theme);
-  const toggleTheme = useStore((s) => s.toggleTheme);
-  const accent = useStore((s) => s.accent);
-  const setAccent = useStore((s) => s.setAccent);
-  const preset = useStore((s) => s.preset);
-  const setPreset = useStore((s) => s.setPreset);
   const zenMode = useStore((s) => s.zenMode);
 
   useEffect(() => {
@@ -199,54 +192,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           )}
         </div>
 
-        <div className="border-t border-[rgba(168,85,247,0.15)] px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Palette size={14} className="text-[#e0e0ff]/40" />
-              <span className="text-[10px] font-bold text-[#e0e0ff]/50 uppercase tracking-wider">Tema</span>
-            </div>
-            <button onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
-              className="p-2 rounded-lg hover:bg-[#1a1a3e] text-[#e0e0ff]/60 hover:text-[#e0e0ff] cursor-pointer transition-colors">
-              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-          </div>
+        <div className="border-t border-[rgba(168,85,247,0.15)] px-3 py-3">
+          <Link href="/ajustes" onClick={() => setSidebarOpen(false)}
+            className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${pathname === "/ajustes" ? "bg-[rgba(168,85,247,0.15)] text-[#a855f7] border border-[rgba(168,85,247,0.3)] shadow-[0_0_15px_rgba(168,85,247,0.15)]" : "text-[#e0e0ff]/50 hover:bg-[#1a1a3e]/50 hover:text-[#e0e0ff]/80 border border-transparent"}`}>
+            <Settings2 size={18} className={`flex-shrink-0 transition-colors ${pathname === "/ajustes" ? "text-[#a855f7] drop-shadow-[0_0_6px_rgba(168,85,247,0.5)]" : "text-[#e0e0ff]/30 group-hover:text-[#e0e0ff]/60"}`} />
+            <span>Ajustes</span>
+            {pathname === "/ajustes" && <div className="ml-auto h-1.5 w-1.5 rounded-full bg-[#a855f7] shadow-[0_0_8px_rgba(168,85,247,0.7)]" />}
+          </Link>
 
-          <div className="grid grid-cols-3 gap-1.5 mb-3">
-            {PRESETS.map(p => {
-              const active = preset.id === p.id;
-              const colors = p[theme];
-              return (
-                <button key={p.id} onClick={() => setPreset(p)} title={p.name}
-                  className={`flex flex-col items-center gap-1 rounded-xl p-2 border cursor-pointer transition-all ${
-                    active ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.12)]" : "border-[rgba(168,85,247,0.1)] hover:border-[rgba(168,85,247,0.4)]"
-                  }`}>
-                  <span className="text-base leading-none">{p.icon}</span>
-                  <span className="text-[8px] font-semibold text-[#e0e0ff]/60 truncate w-full text-center">{p.name}</span>
-                  <div className="flex w-full gap-0.5 mt-0.5">
-                    <span className="w-3 h-1.5 rounded-sm" style={{ background: colors.bg }} />
-                    <span className="w-3 h-1.5 rounded-sm" style={{ background: accent.color }} />
-                    <span className="w-3 h-1.5 rounded-sm" style={{ background: colors.surfaceSolid }} />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {ACCENTS.slice(0, 7).map(a => (
-              <button key={a.name} onClick={() => setAccent(a)} title={a.name}
-                className={`w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110 ${accent.name === a.name ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[#12122a]" : ""}`}
-                style={{ background: a.color }} />
-            ))}
-          </div>
-          <div className="flex items-center gap-3 mt-4">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a1a3e]/60 border border-[rgba(168,85,247,0.2)]">
-              <User size={18} className="text-[#e0e0ff]/40" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[#e0e0ff] truncate">{userName}</p>
-              <p className="text-[10px] text-[#e0e0ff]/40 truncate">{userEmail}</p>
-            </div>
+          <div className="flex items-center gap-3 mt-3">
+            <Link href="/profile" className="group flex items-center gap-3 flex-1 min-w-0 rounded-lg px-2 py-1.5 hover:bg-[#1a1a3e]/50 transition-colors" onClick={() => setSidebarOpen(false)}>
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a1a3e]/60 border border-[rgba(168,85,247,0.2)] shrink-0">
+                <User size={18} className="text-[#e0e0ff]/40" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-[#e0e0ff] truncate">{userName}</p>
+                <p className="text-[10px] text-[#e0e0ff]/40 truncate">{userEmail}</p>
+              </div>
+            </Link>
             <button onClick={handleLogout} className="rounded-lg p-2 text-[#e0e0ff]/30 hover:bg-red-500/10 hover:text-red-400 transition-colors cursor-pointer" title="Cerrar sesion">
               <LogOut size={16} />
             </button>

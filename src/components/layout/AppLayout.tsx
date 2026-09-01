@@ -36,7 +36,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
-  const [spotifyOpen, setSpotifyOpen] = useState(true);
+  const [spotifyOpen, setSpotifyOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const stored = localStorage.getItem("deskly-focus-music-open");
+      return stored === null ? true : stored === "1";
+    } catch {
+      return true;
+    }
+  });
   const [focusPlaylist, setFocusPlaylist] = useState<string>(() => loadFocusPlaylist());
   const [maintenance, setMaintenance] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
@@ -138,7 +146,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-3 py-3">
-          <button onClick={() => setSpotifyOpen(!spotifyOpen)}
+          <button onClick={() => { const next = !spotifyOpen; setSpotifyOpen(next); try { localStorage.setItem("deskly-focus-music-open", next ? "1" : "0"); } catch {} }}
             className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-left hover:bg-[#1a1a3e]/50 transition-colors cursor-pointer group">
             <Music size={14} className="text-[#1db954]" />
             <span className="text-[10px] font-bold text-[#e0e0ff]/60 flex-1">Focus Music</span>

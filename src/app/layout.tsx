@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import ThemeController from "@/components/ui/ThemeController";
 import PWA from "@/components/ui/PWA";
+import GlobalMusicPlayer from "@/components/ui/GlobalMusicPlayer";
 import "./globals.css";
 
 const inter = Inter({
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeController />
         <PWA />
         {children}
+        <GlobalMusicPlayer />
       </body>
     </html>
   );

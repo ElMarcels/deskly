@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Palette, Sun, Moon, Timer, CheckSquare, Music, LayoutDashboard,
 } from "lucide-react";
@@ -9,7 +8,7 @@ import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
 import { useStore } from "@/lib/store/useStore";
 import { ACCENTS, PRESETS } from "@/lib/theme";
-import { FOCUS_PLAYLISTS, loadFocusPlaylist, saveFocusPlaylist } from "@/lib/spotify";
+import { FOCUS_PLAYLISTS } from "@/lib/spotify";
 
 const WIDGET_LABELS: Record<string, string> = {
   pomodoro: "Pomodoro",
@@ -60,11 +59,13 @@ export default function AjustesPage() {
   const setWidgetVisible = useStore((s) => s.setWidgetVisible);
   const widgetLayout = useStore((s) => s.widgetLayout);
 
-  const [focusPlaylist, setFocusPlaylist] = useState<string>(() => loadFocusPlaylist());
+  const focusPlaylist = useStore((s) => s.focusPlaylistId);
+  const setFocusPlaylist = useStore((s) => s.setFocusPlaylistId);
+  const musicPlaying = useStore((s) => s.musicPlaying);
+  const setMusicPlaying = useStore((s) => s.setMusicPlaying);
 
   const selectPlaylist = (id: string) => {
     setFocusPlaylist(id);
-    saveFocusPlaylist(id);
   };
 
   return (
@@ -190,6 +191,13 @@ export default function AjustesPage() {
                 <span className="text-[10px] text-[#e0e0ff]/40">Activa este playlist en el reproductor {focusPlaylist === p.id ? "✓" : ""}</span>
               </button>
             ))}
+          </div>
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-[rgba(168,85,247,0.1)]">
+            <div>
+              <p className="text-xs font-medium text-[#e0e0ff]">Reproductor global</p>
+              <p className="text-[10px] text-[#e0e0ff]/40">Mantén la música sonando al navegar por la plataforma</p>
+            </div>
+            <Toggle on={musicPlaying} onClick={() => setMusicPlaying(!musicPlaying)} />
           </div>
         </SectionCard>
 

@@ -43,6 +43,11 @@ interface DesklyState {
   zenMode: boolean;
   toggleZenMode: () => void;
 
+  musicPlaying: boolean;
+  setMusicPlaying: (playing: boolean) => void;
+  focusPlaylistId: string;
+  setFocusPlaylistId: (id: string) => void;
+
   pomodoroMode: PomodoroMode;
   setPomodoroMode: (mode: PomodoroMode) => void;
   pomodoroSettings: PomodoroSettings;
@@ -154,6 +159,17 @@ export const useStore = create<DesklyState>((set, get) => ({
     const next = !get().zenMode;
     saveToStorage("deskly-zen-mode", next);
     set({ zenMode: next });
+  },
+
+  musicPlaying: loadFromStorage("deskly-music-playing", false),
+  setMusicPlaying: (playing) => {
+    saveToStorage("deskly-music-playing", playing);
+    set({ musicPlaying: playing });
+  },
+  focusPlaylistId: loadFromStorage("deskly-focus-playlist", "lofi"),
+  setFocusPlaylistId: (id) => {
+    saveToStorage("deskly-focus-playlist", id);
+    set({ focusPlaylistId: id });
   },
 
   pomodoroMode: loadFromStorage("deskly-pomodoro-mode", "study" as PomodoroMode),

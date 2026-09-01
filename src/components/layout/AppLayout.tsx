@@ -5,13 +5,11 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
-  CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
+  CheckSquare, Menu, X, LogOut, ShieldCheck, Wrench, Megaphone,
   LifeBuoy, ScrollText, Timer, Layers, Calculator, Settings2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store/useStore";
-import SpotifyEmbed from "@/components/ui/SpotifyEmbed";
-import { FOCUS_PLAYLISTS, getFocusPlaylist, loadFocusPlaylist, saveFocusPlaylist } from "@/lib/spotify";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
 
@@ -36,16 +34,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [userName, setUserName] = useState("");
-  const [spotifyOpen, setSpotifyOpen] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    try {
-      const stored = localStorage.getItem("deskly-focus-music-open");
-      return stored === null ? true : stored === "1";
-    } catch {
-      return true;
-    }
-  });
-  const [focusPlaylist, setFocusPlaylist] = useState<string>(() => loadFocusPlaylist());
   const [maintenance, setMaintenance] = useState(false);
   const [announcements, setAnnouncements] = useState<{ id: string; title: string; content: string }[]>([]);
   const [dismissed, setDismissed] = useState<string[]>([]);
@@ -144,39 +132,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           )}
         </nav>
-
-        <div className="border-t border-[rgba(168,85,247,0.15)] px-3 py-3">
-          <button onClick={() => { const next = !spotifyOpen; setSpotifyOpen(next); try { localStorage.setItem("deskly-focus-music-open", next ? "1" : "0"); } catch {} }}
-            className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-left hover:bg-[#1a1a3e]/50 transition-colors cursor-pointer group">
-            <Music size={14} className="text-[#1db954]" />
-            <span className="text-[10px] font-bold text-[#e0e0ff]/60 flex-1">Focus Music</span>
-            {spotifyOpen ? <ChevronDown size={12} className="text-[#e0e0ff]/30" /> : <ChevronUp size={12} className="text-[#e0e0ff]/30" />}
-          </button>
-          {spotifyOpen && (
-            <div className="mt-2">
-              <div className="grid grid-cols-2 gap-1.5 mb-2">
-                {FOCUS_PLAYLISTS.map(p => {
-                  const active = focusPlaylist === p.id;
-                  return (
-                    <button key={p.id} onClick={() => { setFocusPlaylist(p.id); saveFocusPlaylist(p.id); }}
-                      className={`text-left px-2.5 py-2 rounded-xl border transition-all cursor-pointer ${
-                        active
-                          ? `bg-[${p.color}]/15 border-[${p.color}]/50`
-                          : "bg-[#12122a]/50 border-[rgba(168,85,247,0.1)] hover:border-[rgba(168,85,247,0.4)]"
-                      }`}
-                      style={active ? { borderColor: p.color + "80", background: p.color + "22" } : undefined}>
-                      <span className={`block text-[10px] font-bold ${active ? "" : "text-[#e0e0ff]/50"}`} style={active ? { color: p.color } : undefined}>{p.name}</span>
-                      <span className="block text-[9px] text-[#e0e0ff]/40 leading-tight mt-0.5">{p.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="rounded-xl overflow-hidden border border-[rgba(168,85,247,0.1)] spotify-embed">
-                <SpotifyEmbed playlistUrl={getFocusPlaylist(focusPlaylist).embed} height={352} title="Focus Music" />
-              </div>
-            </div>
-          )}
-        </div>
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-3 py-3">
           <Link href="/ajustes" onClick={() => setSidebarOpen(false)}

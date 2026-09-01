@@ -31,19 +31,3 @@ export const FOCUS_PLAYLIST_KEY = "deskly-focus-playlist";
 export function getFocusPlaylist(id: string): FocusPlaylist {
   return FOCUS_PLAYLISTS.find((p) => p.id === id) || FOCUS_PLAYLISTS[0];
 }
-
-export function loadFocusPlaylist(): string {
-  if (typeof window === "undefined") return FOCUS_PLAYLISTS[0].id;
-  try {
-    const stored = localStorage.getItem(FOCUS_PLAYLIST_KEY);
-    return stored && FOCUS_PLAYLISTS.some((p) => p.id === stored) ? stored : FOCUS_PLAYLISTS[0].id;
-  } catch {
-    return FOCUS_PLAYLISTS[0].id;
-  }
-}
-
-export function saveFocusPlaylist(id: string) {
-  try {
-    localStorage.setItem(FOCUS_PLAYLIST_KEY, id);
-  } catch {}
-}

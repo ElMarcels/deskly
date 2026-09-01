@@ -6,11 +6,11 @@ import { useRouter, usePathname } from "next/navigation";
 import {
   Zap, LayoutDashboard, User, Users, Radio, MessageCircle,
   CheckSquare, Music, Menu, X, LogOut, ChevronDown, ChevronUp, ShieldCheck, Wrench, Megaphone,
-  Sun, Moon, LifeBuoy, ScrollText, Timer,
+  Sun, Moon, LifeBuoy, ScrollText, Timer, Layers, Calculator, Palette,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase/client";
 import { useStore } from "@/lib/store/useStore";
-import { ACCENTS } from "@/lib/theme";
+import { ACCENTS, PRESETS } from "@/lib/theme";
 
 const ADMIN_EMAIL = "mnartves@gmail.com";
 
@@ -38,6 +38,8 @@ const navLinks = [
   { href: "/rooms", label: "Salas", icon: Radio },
   { href: "/messages", label: "Mensajes", icon: MessageCircle },
   { href: "/habits", label: "Habitos", icon: CheckSquare },
+  { href: "/flashcards", label: "Flashcards", icon: Layers },
+  { href: "/calculadora", label: "Calculadora", icon: Calculator },
   { href: "/notas", label: "Notas", icon: CheckSquare },
   { href: "/reglas", label: "Reglas", icon: ScrollText },
   { href: "/breaks", label: "Pausas", icon: Timer },
@@ -59,6 +61,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const toggleTheme = useStore((s) => s.toggleTheme);
   const accent = useStore((s) => s.accent);
   const setAccent = useStore((s) => s.setAccent);
+  const preset = useStore((s) => s.preset);
+  const setPreset = useStore((s) => s.setPreset);
   const zenMode = useStore((s) => s.zenMode);
 
   useEffect(() => {
@@ -197,19 +201,45 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <div className="border-t border-[rgba(168,85,247,0.15)] px-4 py-4">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-1.5">
-              {ACCENTS.slice(0, 7).map(a => (
-                <button key={a.name} onClick={() => setAccent(a)} title={a.name}
-                  className={`w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110 ${accent.name === a.name ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[#12122a]" : ""}`}
-                  style={{ background: a.color }} />
-              ))}
+            <div className="flex items-center gap-2">
+              <Palette size={14} className="text-[#e0e0ff]/40" />
+              <span className="text-[10px] font-bold text-[#e0e0ff]/50 uppercase tracking-wider">Tema</span>
             </div>
             <button onClick={toggleTheme} title={theme === "dark" ? "Modo claro" : "Modo oscuro"}
               className="p-2 rounded-lg hover:bg-[#1a1a3e] text-[#e0e0ff]/60 hover:text-[#e0e0ff] cursor-pointer transition-colors">
               {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="grid grid-cols-3 gap-1.5 mb-3">
+            {PRESETS.map(p => {
+              const active = preset.id === p.id;
+              const colors = p[theme];
+              return (
+                <button key={p.id} onClick={() => setPreset(p)} title={p.name}
+                  className={`flex flex-col items-center gap-1 rounded-xl p-2 border cursor-pointer transition-all ${
+                    active ? "border-[var(--accent)] bg-[rgba(var(--accent-rgb),0.12)]" : "border-[rgba(168,85,247,0.1)] hover:border-[rgba(168,85,247,0.4)]"
+                  }`}>
+                  <span className="text-base leading-none">{p.icon}</span>
+                  <span className="text-[8px] font-semibold text-[#e0e0ff]/60 truncate w-full text-center">{p.name}</span>
+                  <div className="flex w-full gap-0.5 mt-0.5">
+                    <span className="w-3 h-1.5 rounded-sm" style={{ background: colors.bg }} />
+                    <span className="w-3 h-1.5 rounded-sm" style={{ background: accent.color }} />
+                    <span className="w-3 h-1.5 rounded-sm" style={{ background: colors.surfaceSolid }} />
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {ACCENTS.slice(0, 7).map(a => (
+              <button key={a.name} onClick={() => setAccent(a)} title={a.name}
+                className={`w-5 h-5 rounded-full cursor-pointer transition-transform hover:scale-110 ${accent.name === a.name ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[#12122a]" : ""}`}
+                style={{ background: a.color }} />
+            ))}
+          </div>
+          <div className="flex items-center gap-3 mt-4">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#1a1a3e]/60 border border-[rgba(168,85,247,0.2)]">
               <User size={18} className="text-[#e0e0ff]/40" />
             </div>

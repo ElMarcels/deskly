@@ -2,10 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import AppLayout from "@/components/layout/AppLayout";
-import { MessageCircle, Send, Search, Plus, Users, Trash2, X, UserPlus } from "lucide-react";
+import { MessageCircle, Send, Search, Plus, Users, Trash2, X, UserPlus, Phone, StickyNote } from "lucide-react";
 import GlassCard from "@/components/ui/GlassCard";
 import NeonButton from "@/components/ui/NeonButton";
 import { supabase } from "@/lib/supabase/client";
+import GroupSharedNotes from "@/components/group/GroupSharedNotes";
+import GroupCall from "@/components/group/GroupCall";
 
 interface Chat {
   id: string;
@@ -47,6 +49,8 @@ export default function MessagesPage() {
   const [selectedMembers, setSelectedMembers] = useState<Profile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [callOpen, setCallOpen] = useState(false);
+  const [showGroupNotes, setShowGroupNotes] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -414,10 +418,23 @@ export default function MessagesPage() {
                     <p className="text-[10px] text-[#e0e0ff]/30">{selectedChat.isGroup ? "Grupo" : selectedChat.online ? "🟢 En línea" : "⚪ Desconectado"}</p>
                   </div>
                   {selectedChat.isGroup && (
-                    <button onClick={() => setShowInvite(true)} className="p-1.5 rounded-lg hover:bg-[#1a1a3e] text-[#a855f7] cursor-pointer"><UserPlus size={14} /></button>
+                    <>
+                      <button onClick={() => setCallOpen(true)} title="Llamada de voz/vídeo" className="p-1.5 rounded-lg hover:bg-[#1a1a3e] text-[#a855f7] cursor-pointer"><Phone size={14} /></button>
+                      <button onClick={() => setShowGroupNotes(!showGroupNotes)} title="Nota compartida"
+                        className={`p-1.5 rounded-lg hover:bg-[#1a1a3e] cursor-pointer ${showGroupNotes ? "text-[#06b6d4]" : "text-[#a855f7]"}`}>
+                        <StickyNote size={14} />
+                      </button>
+                      <button onClick={() => setShowInvite(true)} className="p-1.5 rounded-lg hover:bg-[#1a1a3e] text-[#a855f7] cursor-pointer"><UserPlus size={14} /></button>
+                    </>
                   )}
                 </div>
-                <div className="flex-1 overflow-y-auto py-4 space-y-3">
+                <div className="flex-1 flex flex-col min-h-0">
+                  {showGroupNotes && selectedChat.isGroup && (
+                    <div className="pb-3 border-b border-[rgba(168,85,247,0.1)] mb-2 animate-slide-up shrink-0">
+                      <GroupSharedNotes groupId={selectedChat.id} />
+                    </div>
+                  )}
+                  <div className="flex-1 overflow-y-auto py-4 space-y-3">
                   {messages.length === 0 && <p className="text-center text-[#e0e0ff]/20 text-xs py-8">Envía el primer mensaje</p>}
                   {messages.map(m => (
                     <div key={m.id} className={`flex ${m.isMe ? "justify-end" : ""}`}>
@@ -435,6 +452,7 @@ export default function MessagesPage() {
                     onKeyDown={e => e.key === "Enter" && sendMessage()}
                     className="flex-1 bg-[#12122a] border border-[rgba(168,85,247,0.2)] rounded-xl px-4 py-2.5 text-xs text-[#e0e0ff] outline-none focus:border-[#a855f7] placeholder:text-[#e0e0ff]/20" />
                   <NeonButton onClick={sendMessage} variant="primary" size="md"><Send size={16} /></NeonButton>
+                </div>
                 </div>
               </>
             ) : (
@@ -470,6 +488,10 @@ export default function MessagesPage() {
             </div>
           </GlassCard>
         </div>
+      )}
+
+      {callOpen && selectedChat?.isGroup && (
+        <GroupCall groupId={selectedChat.id} groupName={selectedChat.name} onClose={() => setCallOpen(false)} />
       )}
     </AppLayout>
   );

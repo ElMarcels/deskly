@@ -6,6 +6,23 @@ export interface Accent {
   name: string;
   color: string;
 }
+export interface ThemeColors {
+  bg: string;
+  surface: string;
+  surfaceSolid: string;
+  surfaceLight: string;
+  text: string;
+  textDim: string;
+  border: string;
+}
+export interface ThemePreset {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  dark: ThemeColors;
+  light: ThemeColors;
+}
 
 interface DesklyState {
   theme: Theme;
@@ -13,6 +30,8 @@ interface DesklyState {
   toggleTheme: () => void;
   accent: Accent;
   setAccent: (a: Accent) => void;
+  preset: ThemePreset;
+  setPreset: (p: ThemePreset) => void;
 
   widgetLayout: string[];
   setWidgetLayout: (order: string[]) => void;
@@ -80,6 +99,34 @@ export const useStore = create<DesklyState>((set, get) => ({
   setAccent: (a) => {
     saveToStorage("deskly-accent", a);
     set({ accent: a });
+  },
+  preset: loadFromStorage("deskly-preset", {
+    id: "neon-dark",
+    name: "Neon Dark",
+    description: "Morado y rosa sobre negro espacial (por defecto)",
+    icon: "🌌",
+    dark: {
+      bg: "#0a0a1a",
+      surface: "rgba(18, 18, 42, 0.6)",
+      surfaceSolid: "#12122a",
+      surfaceLight: "#1a1a3e",
+      text: "#e0e0ff",
+      textDim: "rgba(224, 224, 255, 0.5)",
+      border: "rgba(168, 85, 247, 0.2)",
+    },
+    light: {
+      bg: "#f4f4fb",
+      surface: "rgba(255, 255, 255, 0.75)",
+      surfaceSolid: "#ffffff",
+      surfaceLight: "#eeeeff",
+      text: "#1a1a2e",
+      textDim: "rgba(26, 26, 46, 0.55)",
+      border: "rgba(120, 80, 220, 0.25)",
+    },
+  } as ThemePreset),
+  setPreset: (p) => {
+    saveToStorage("deskly-preset", p);
+    set({ preset: p });
   },
 
   widgetLayout: loadFromStorage("deskly-widget-layout", ["pomodoro", "tasks", "notes", "analytics", "grades", "quote", "spotify"]),
